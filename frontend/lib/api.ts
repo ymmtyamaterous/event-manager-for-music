@@ -1,4 +1,4 @@
-import { Announcement, Band, EventCard, EventEntry, OrganizerReservation, RegisterFormData, Reservation, UserType } from "@/types";
+import { Announcement, Band, BandEntry, EventCard, EventEntry, OrganizerReservation, RegisterFormData, Reservation, UserType } from "@/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000/api/v1";
 
@@ -84,6 +84,20 @@ type APIBand = {
   description: string | null;
   created_at: string;
   updated_at: string;
+};
+
+type APIEntryWithEvent = {
+  id: string;
+  event_id: string;
+  band_id: string;
+  status: "pending" | "approved" | "rejected";
+  message: string | null;
+  rejection_reason: string | null;
+  created_at: string;
+  updated_at: string;
+  event_title: string;
+  event_date: string;
+  venue_name: string;
 };
 
 type LoginInput = {
@@ -452,6 +466,25 @@ export async function createEntry(eventId: string, accessToken: string, bandId: 
   });
 }
 
+export async function listBandEntries(
+  bandId: string,
+  accessToken: string,
+  status?: "pending" | "approved" | "rejected",
+): Promise<BandEntry[]> {
+  const params = new URLSearchParams();
+  if (status) {
+    params.set("status", status);
+  }
+  const query = params.toString();
+  const path = query ? `/bands/${bandId}/entries?${query}` : `/bands/${bandId}/entries`;
+
+  const response = await requestAuth<APIEntryWithEvent[]>(path, accessToken, {
+    method: "GET",
+  });
+
+  return response.map(toBandEntry);
+}
+
 function toEventCard(event: APIEvent): EventCard {
   return {
     id: event.id,
@@ -522,6 +555,22 @@ function toBand(band: APIBand): Band {
     description: band.description,
     createdAt: band.created_at,
     updatedAt: band.updated_at,
+  };
+}
+
+function toBandEntry(entry: APIEntryWithEvent): BandEntry {
+  return {
+    id: entry.id,
+    eventId: entry.event_id,
+    bandId: entry.band_id,
+    status: entry.status,
+    message: entry.message,
+    rejectionReason: entry.rejection_reason,
+    createdAt: entry.created_at,
+    updatedAt: entry.updated_at,
+    eventTitle: entry.event_title,
+    eventDate: entry.event_date,
+    venueName: entry.venue_name,
   };
 }
 

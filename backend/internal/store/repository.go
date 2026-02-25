@@ -23,6 +23,7 @@ type Repository interface {
 	UpdateAnnouncement(eventID string, announcementID string, organizerID string, title string, content string) (model.Announcement, error)
 	DeleteAnnouncement(eventID string, announcementID string, organizerID string) error
 	ListEntriesByEvent(eventID string, organizerID string, status string) ([]model.EntryWithBand, error)
+	ListEntriesByBand(bandID string, userID string, status string) ([]model.EntryWithEvent, error)
 	CreateEntry(eventID string, userID string, bandID string, message string) (model.Entry, error)
 	ApproveEntry(entryID string, organizerID string) (model.Entry, error)
 	RejectEntry(entryID string, organizerID string, rejectionReason string) (model.Entry, error)

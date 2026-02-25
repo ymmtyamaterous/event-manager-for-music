@@ -147,6 +147,7 @@ func NewServer(cfg config.Config) *Server {
 	mux.HandleFunc("GET /api/v1/users/me", app.handleGetMe)
 	mux.HandleFunc("PATCH /api/v1/users/me", app.handlePatchMe)
 	mux.HandleFunc("GET /api/v1/bands/me", app.handleListMyBands)
+	mux.HandleFunc("GET /api/v1/bands/{id}/entries", app.handleListBandEntries)
 	mux.HandleFunc("POST /api/v1/bands", app.handleCreateBand)
 	mux.HandleFunc("GET /api/v1/events", app.handleListEvents)
 	mux.HandleFunc("POST /api/v1/events", app.handleCreateEvent)
@@ -414,6 +415,34 @@ func (a *app) handleCreateBand(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusCreated, band)
+}
+
+func (a *app) handleListBandEntries(w http.ResponseWriter, r *http.Request) {
+	claims, err := a.parseAccessTokenFromHeader(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	if claims.UserType != model.UserTypePerformer {
+		writeError(w, http.StatusForbidden, "出演者ユーザーのみエントリー一覧を参照できます")
+		return
+	}
+
+	status := strings.TrimSpace(r.URL.Query().Get("status"))
+	entries, err := a.store.ListEntriesByBand(r.PathValue("id"), claims.UserID, status)
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrForbidden):
+			writeError(w, http.StatusForbidden, "このバンドのエントリー一覧を参照する権限がありません")
+		case errors.Is(err, store.ErrNotFound):
+			writeError(w, http.StatusNotFound, "バンドが存在しません")
+		default:
+			writeError(w, http.StatusInternalServerError, "サーバーエラー")
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusOK, entries)
 }
 
 func (a *app) handleListEvents(w http.ResponseWriter, r *http.Request) {

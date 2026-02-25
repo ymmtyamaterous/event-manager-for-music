@@ -594,6 +594,46 @@ func (s *MemoryStore) ListEntriesByEvent(eventID string, organizerID string, sta
 	return result, nil
 }
 
+func (s *MemoryStore) ListEntriesByBand(bandID string, userID string, status string) ([]model.EntryWithEvent, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	band, exists := s.bandsByID[bandID]
+	if !exists {
+		return nil, ErrNotFound
+	}
+	if band.OwnerID != userID {
+		return nil, ErrForbidden
+	}
+
+	result := make([]model.EntryWithEvent, 0)
+	for _, entry := range s.entriesByID {
+		if entry.BandID != bandID {
+			continue
+		}
+		if strings.TrimSpace(status) != "" && string(entry.Status) != strings.TrimSpace(status) {
+			continue
+		}
+		event, exists := s.eventsByID[entry.EventID]
+		if !exists {
+			continue
+		}
+
+		result = append(result, model.EntryWithEvent{
+			Entry:      entry,
+			EventTitle: event.Title,
+			EventDate:  event.EventDate,
+			VenueName:  event.VenueName,
+		})
+	}
+
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].CreatedAt.After(result[j].CreatedAt)
+	})
+
+	return result, nil
+}
+
 func (s *MemoryStore) CreateEntry(eventID string, userID string, bandID string, message string) (model.Entry, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

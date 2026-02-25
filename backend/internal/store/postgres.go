@@ -873,6 +873,66 @@ func (s *PostgresStore) ListEntriesByEvent(eventID string, organizerID string, s
 	return result, nil
 }
 
+func (s *PostgresStore) ListEntriesByBand(bandID string, userID string, status string) ([]model.EntryWithEvent, error) {
+	var ownerID string
+	err := s.db.QueryRow(`SELECT owner_id FROM bands WHERE id = $1`, bandID).Scan(&ownerID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	if ownerID != userID {
+		return nil, ErrForbidden
+	}
+
+	base := `
+		SELECT
+			e.id,
+			e.event_id,
+			e.band_id,
+			e.status,
+			e.message,
+			e.rejection_reason,
+			e.created_at,
+			e.updated_at,
+			ev.title,
+			ev.event_date,
+			ev.venue_name
+		FROM entries e
+		INNER JOIN events ev ON ev.id = e.event_id
+		WHERE e.band_id = $1
+	`
+
+	args := []any{bandID}
+	if strings.TrimSpace(status) != "" {
+		base += " AND e.status = $2"
+		args = append(args, strings.TrimSpace(status))
+	}
+
+	base += " ORDER BY e.created_at DESC"
+
+	rows, err := s.db.Query(base, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result := make([]model.EntryWithEvent, 0)
+	for rows.Next() {
+		item, ok := scanEntryWithEvent(rows)
+		if ok {
+			result = append(result, item)
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
 func (s *PostgresStore) CreateEntry(eventID string, userID string, bandID string, message string) (model.Entry, error) {
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -1058,6 +1118,10 @@ type entryScanner interface {
 }
 
 type entryWithBandScanner interface {
+	Scan(dest ...any) error
+}
+
+type entryWithEventScanner interface {
 	Scan(dest ...any) error
 }
 
@@ -1276,6 +1340,46 @@ func scanEntryWithBand(scanner entryWithBandScanner) (model.EntryWithBand, bool)
 	if rejectionReason.Valid {
 		v := rejectionReason.String
 		item.RejectionReason = &v
+	}
+
+	return item, true
+}
+
+func scanEntryWithEvent(scanner entryWithEventScanner) (model.EntryWithEvent, bool) {
+	var item model.EntryWithEvent
+	var status string
+	var message sql.NullString
+	var rejectionReason sql.NullString
+	var eventDate sql.NullTime
+
+	err := scanner.Scan(
+		&item.ID,
+		&item.EventID,
+		&item.BandID,
+		&status,
+		&message,
+		&rejectionReason,
+		&item.CreatedAt,
+		&item.UpdatedAt,
+		&item.EventTitle,
+		&eventDate,
+		&item.VenueName,
+	)
+	if errors.Is(err, sql.ErrNoRows) || err != nil {
+		return model.EntryWithEvent{}, false
+	}
+
+	item.Status = model.EntryStatus(status)
+	if message.Valid {
+		v := message.String
+		item.Message = &v
+	}
+	if rejectionReason.Valid {
+		v := rejectionReason.String
+		item.RejectionReason = &v
+	}
+	if eventDate.Valid {
+		item.EventDate = eventDate.Time.Format("2006-01-02")
 	}
 
 	return item, true

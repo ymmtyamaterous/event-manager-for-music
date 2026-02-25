@@ -149,3 +149,10 @@ type EntryWithBand struct {
 	Entry
 	BandName string `json:"band_name"`
 }
+
+type EntryWithEvent struct {
+	Entry
+	EventTitle string `json:"event_title"`
+	EventDate  string `json:"event_date"`
+	VenueName  string `json:"venue_name"`
+}

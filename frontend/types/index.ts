@@ -81,3 +81,17 @@ export type EventEntry = {
   updatedAt: string;
   bandName: string;
 };
+
+export type BandEntry = {
+  id: string;
+  eventId: string;
+  bandId: string;
+  status: EntryStatus;
+  message: string | null;
+  rejectionReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+  eventTitle: string;
+  eventDate: string;
+  venueName: string;
+};

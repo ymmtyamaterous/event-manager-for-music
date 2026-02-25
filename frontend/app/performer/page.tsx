@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { APIUser, createBand, createEntry, listEvents, listMyBands } from "@/lib/api";
-import { Band, EventCard } from "@/types";
+import { APIUser, createBand, createEntry, listBandEntries, listEvents, listMyBands } from "@/lib/api";
+import { Band, BandEntry, EventCard } from "@/types";
 
 export default function PerformerPage() {
   const [bands, setBands] = useState<Band[]>([]);
@@ -12,6 +12,8 @@ export default function PerformerPage() {
   const [genre, setGenre] = useState("");
   const [description, setDescription] = useState("");
   const [selectedBandId, setSelectedBandId] = useState("");
+  const [bandEntries, setBandEntries] = useState<BandEntry[]>([]);
+  const [entryStatusFilter, setEntryStatusFilter] = useState<"" | "pending" | "approved" | "rejected">("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingBand, setIsSavingBand] = useState(false);
   const [entryEventId, setEntryEventId] = useState<string | null>(null);
@@ -79,6 +81,23 @@ export default function PerformerPage() {
     }
   }, [bands, selectedBandId]);
 
+  useEffect(() => {
+    const loadEntries = async () => {
+      if (!accessToken || !selectedBandId) {
+        setBandEntries([]);
+        return;
+      }
+      try {
+        const rows = await listBandEntries(selectedBandId, accessToken, entryStatusFilter || undefined);
+        setBandEntries(rows ?? []);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "申請済み一覧の取得に失敗しました");
+      }
+    };
+
+    void loadEntries();
+  }, [accessToken, selectedBandId, entryStatusFilter]);
+
   const handleCreateBand = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!accessToken) {
@@ -124,6 +143,8 @@ export default function PerformerPage() {
     setEntryEventId(eventId);
     try {
       await createEntry(eventId, accessToken, selectedBandId, message);
+      const rows = await listBandEntries(selectedBandId, accessToken, entryStatusFilter || undefined);
+      setBandEntries(rows ?? []);
       setSuccess("エントリー申請を送信しました");
     } catch (err) {
       setError(err instanceof Error ? err.message : "エントリー申請に失敗しました");
@@ -222,14 +243,17 @@ export default function PerformerPage() {
             <article key={event.id} className="rounded-lg border border-gray-200 p-4">
               <h3 className="text-base font-bold text-gray-900">{event.title}</h3>
               <p className="mt-1 text-sm text-gray-600">📅 {event.eventDate} / 📍 {event.venueName}</p>
+              {bandEntries.some((entry) => entry.eventId === event.id) && (
+                <p className="mt-2 text-xs text-blue-700">このバンドは既に申請済みです。</p>
+              )}
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => handleEntry(event.id)}
-                  disabled={bands.length === 0 || entryEventId === event.id}
+                  disabled={bands.length === 0 || entryEventId === event.id || bandEntries.some((entry) => entry.eventId === event.id)}
                   className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors"
                 >
-                  {entryEventId === event.id ? "申請中..." : "このイベントに申請"}
+                  {entryEventId === event.id ? "申請中..." : bandEntries.some((entry) => entry.eventId === event.id) ? "申請済み" : "このイベントに申請"}
                 </button>
                 <Link
                   href={`/events/${event.id}`}
@@ -241,6 +265,50 @@ export default function PerformerPage() {
             </article>
           ))}
           {events.length === 0 && <p className="text-sm text-gray-500">公開中イベントがありません。</p>}
+        </div>
+      </section>
+
+      <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-bold text-gray-900">申請済みエントリー</h2>
+          <select
+            value={entryStatusFilter}
+            onChange={(e) => setEntryStatusFilter(e.target.value as "" | "pending" | "approved" | "rejected")}
+            className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">全件</option>
+            <option value="pending">申請中</option>
+            <option value="approved">承認済み</option>
+            <option value="rejected">却下</option>
+          </select>
+        </div>
+
+        <div className="space-y-3">
+          {bandEntries.map((entry) => (
+            <article key={entry.id} className="rounded-lg border border-gray-200 p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-base font-bold text-gray-900">{entry.eventTitle}</h3>
+                  <p className="mt-1 text-sm text-gray-600">📅 {entry.eventDate} / 📍 {entry.venueName}</p>
+                  <p className="mt-1 text-xs text-gray-500">申請日時: {new Date(entry.createdAt).toLocaleString("ja-JP")}</p>
+                </div>
+                <span
+                  className={
+                    entry.status === "pending"
+                      ? "inline-flex rounded-full bg-yellow-100 px-2.5 py-1 text-xs font-semibold text-yellow-800"
+                      : entry.status === "approved"
+                        ? "inline-flex rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-800"
+                        : "inline-flex rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-700"
+                  }
+                >
+                  {entry.status === "pending" ? "申請中" : entry.status === "approved" ? "承認済み" : "却下"}
+                </span>
+              </div>
+              {entry.message && <p className="mt-2 text-sm text-gray-700">メッセージ: {entry.message}</p>}
+              {entry.rejectionReason && <p className="mt-2 text-sm text-red-700">却下理由: {entry.rejectionReason}</p>}
+            </article>
+          ))}
+          {bandEntries.length === 0 && <p className="text-sm text-gray-500">申請済みエントリーはありません。</p>}
         </div>
       </section>
     </div>
