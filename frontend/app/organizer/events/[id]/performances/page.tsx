@@ -14,6 +14,11 @@ export default function OrganizerPerformancesPage({ params }: OrganizerPerforman
   const [isLoading, setIsLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [editTarget, setEditTarget] = useState<EventPerformance | null>(null);
+  const [editStartTime, setEditStartTime] = useState("");
+  const [editEndTime, setEditEndTime] = useState("");
+  const [editPerformanceOrder, setEditPerformanceOrder] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<EventPerformance | null>(null);
 
   const accessToken = useMemo(() => {
     if (typeof window === "undefined") {
@@ -81,27 +86,22 @@ export default function OrganizerPerformancesPage({ params }: OrganizerPerforman
     void load();
   }, [eventId, user, accessToken, reload]);
 
-  const handleEdit = async (item: EventPerformance) => {
-    if (!accessToken || !eventId) {
+  const openEditModal = (item: EventPerformance) => {
+    setEditTarget(item);
+    setEditStartTime(item.startTime ?? "");
+    setEditEndTime(item.endTime ?? "");
+    setEditPerformanceOrder(String(item.performanceOrder));
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!accessToken || !eventId || !editTarget) {
       return;
     }
 
-    const startInput = window.prompt("開始時刻（任意 / HH:MM）", item.startTime ?? "");
-    if (startInput === null) {
-      return;
-    }
-    const endInput = window.prompt("終了時刻（任意 / HH:MM）", item.endTime ?? "");
-    if (endInput === null) {
-      return;
-    }
-    const orderInput = window.prompt("出演順（1以上）", String(item.performanceOrder));
-    if (orderInput === null) {
-      return;
-    }
-
-    const start = startInput.trim();
-    const end = endInput.trim();
-    const orderText = orderInput.trim();
+    const start = editStartTime.trim();
+    const end = editEndTime.trim();
+    const orderText = editPerformanceOrder.trim();
 
     if (start && !/^\d{2}:\d{2}$/.test(start)) {
       setError("開始時刻は HH:MM 形式で入力してください");
@@ -119,14 +119,15 @@ export default function OrganizerPerformancesPage({ params }: OrganizerPerforman
     }
 
     setError("");
-    setProcessingId(item.id);
+    setProcessingId(editTarget.id);
     try {
-      await updateEventPerformance(eventId, item.id, accessToken, {
+      await updateEventPerformance(eventId, editTarget.id, accessToken, {
         startTime: start || undefined,
         endTime: end || undefined,
         performanceOrder: order,
       });
       await reload();
+      setEditTarget(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "更新に失敗しました");
     } finally {
@@ -134,19 +135,20 @@ export default function OrganizerPerformancesPage({ params }: OrganizerPerforman
     }
   };
 
-  const handleDelete = async (performanceId: string) => {
+  const handleDelete = async () => {
     if (!accessToken || !eventId) {
       return;
     }
-    if (!window.confirm("この出演情報を削除しますか？")) {
+    if (!deleteTarget) {
       return;
     }
 
     setError("");
-    setProcessingId(performanceId);
+    setProcessingId(deleteTarget.id);
     try {
-      await deleteEventPerformance(eventId, performanceId, accessToken);
+      await deleteEventPerformance(eventId, deleteTarget.id, accessToken);
       await reload();
+      setDeleteTarget(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "削除に失敗しました");
     } finally {
@@ -182,7 +184,7 @@ export default function OrganizerPerformancesPage({ params }: OrganizerPerforman
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => handleEdit(item)}
+                  onClick={() => openEditModal(item)}
                   disabled={processingId === item.id}
                   className="bg-blue-600 hover:bg-blue-700 disabled:opacity-70 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors"
                 >
@@ -190,7 +192,7 @@ export default function OrganizerPerformancesPage({ params }: OrganizerPerforman
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleDelete(item.id)}
+                  onClick={() => setDeleteTarget(item)}
                   disabled={processingId === item.id}
                   className="bg-red-600 hover:bg-red-700 disabled:opacity-70 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors"
                 >
@@ -205,6 +207,106 @@ export default function OrganizerPerformancesPage({ params }: OrganizerPerforman
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-sm text-gray-500">出演情報がありません。</div>
         )}
       </div>
+
+      {editTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
+            <h2 className="text-lg font-bold text-gray-900">出演情報を編集</h2>
+            <p className="mt-1 text-sm text-gray-600">{editTarget.bandName}</p>
+
+            <form className="mt-4 space-y-3" onSubmit={handleEditSubmit}>
+              <div>
+                <label htmlFor="start-time" className="block text-sm font-medium text-gray-700 mb-1">
+                  開始時刻（任意）
+                </label>
+                <input
+                  id="start-time"
+                  type="text"
+                  value={editStartTime}
+                  onChange={(e) => setEditStartTime(e.target.value)}
+                  placeholder="18:30"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="end-time" className="block text-sm font-medium text-gray-700 mb-1">
+                  終了時刻（任意）
+                </label>
+                <input
+                  id="end-time"
+                  type="text"
+                  value={editEndTime}
+                  onChange={(e) => setEditEndTime(e.target.value)}
+                  placeholder="19:00"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="performance-order" className="block text-sm font-medium text-gray-700 mb-1">
+                  出演順（必須）
+                </label>
+                <input
+                  id="performance-order"
+                  type="number"
+                  min={1}
+                  value={editPerformanceOrder}
+                  onChange={(e) => setEditPerformanceOrder(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+
+              <div className="pt-1 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditTarget(null)}
+                  className="border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-2 px-4 rounded-lg transition-colors"
+                >
+                  キャンセル
+                </button>
+                <button
+                  type="submit"
+                  disabled={processingId === editTarget.id}
+                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-70 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+                >
+                  {processingId === editTarget.id ? "保存中..." : "保存"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
+            <h2 className="text-lg font-bold text-gray-900">出演情報を削除しますか？</h2>
+            <p className="mt-2 text-sm text-gray-600">
+              {deleteTarget.performanceOrder}. {deleteTarget.bandName}
+            </p>
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                className="border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-2 px-4 rounded-lg transition-colors"
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={processingId === deleteTarget.id}
+                className="bg-red-600 hover:bg-red-700 disabled:opacity-70 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+              >
+                {processingId === deleteTarget.id ? "削除中..." : "削除"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
