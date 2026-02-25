@@ -11,8 +11,10 @@ type OrganizerEntriesPageProps = {
 export default function OrganizerEntriesPage({ params }: OrganizerEntriesPageProps) {
   const [eventId, setEventId] = useState("");
   const [status, setStatus] = useState<"" | "pending" | "approved" | "rejected">("");
+  const [searchWord, setSearchWord] = useState("");
   const [items, setItems] = useState<EventEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
@@ -37,6 +39,20 @@ export default function OrganizerEntriesPage({ params }: OrganizerEntriesPagePro
       return null;
     }
   }, []);
+
+  const filteredItems = useMemo(() => {
+    const word = searchWord.trim().toLowerCase();
+    if (!word) {
+      return items;
+    }
+    return items.filter((item) => {
+      return (
+        item.bandName.toLowerCase().includes(word) ||
+        (item.message ?? "").toLowerCase().includes(word) ||
+        (item.rejectionReason ?? "").toLowerCase().includes(word)
+      );
+    });
+  }, [items, searchWord]);
 
   useEffect(() => {
     const loadParams = async () => {
@@ -126,6 +142,37 @@ export default function OrganizerEntriesPage({ params }: OrganizerEntriesPagePro
     }
   };
 
+  const handleExportCsv = () => {
+    setIsExporting(true);
+    try {
+      const bom = "\uFEFF";
+      const header = ["バンド名", "ステータス", "申請メッセージ", "却下理由", "申請日時"];
+      const rows = filteredItems.map((item) => [
+        item.bandName,
+        item.status,
+        item.message ?? "",
+        item.rejectionReason ?? "",
+        new Date(item.createdAt).toLocaleString("ja-JP"),
+      ]);
+
+      const csv = [header, ...rows]
+        .map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(","))
+        .join("\n");
+
+      const blob = new Blob([bom + csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `entries-${eventId}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   if (isLoading) {
     return <p className="text-sm text-gray-600">読み込み中...</p>;
   }
@@ -139,7 +186,14 @@ export default function OrganizerEntriesPage({ params }: OrganizerEntriesPagePro
 
       {error && <div className="bg-red-50 text-red-700 border border-red-200 rounded-lg px-4 py-3 text-sm">{error}</div>}
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex flex-col md:flex-row gap-3">
+        <input
+          type="text"
+          value={searchWord}
+          onChange={(e) => setSearchWord(e.target.value)}
+          placeholder="バンド名・メッセージ・却下理由で検索"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value as "" | "pending" | "approved" | "rejected")}
@@ -150,12 +204,20 @@ export default function OrganizerEntriesPage({ params }: OrganizerEntriesPagePro
           <option value="approved">承認済み</option>
           <option value="rejected">却下</option>
         </select>
+        <button
+          type="button"
+          onClick={handleExportCsv}
+          disabled={isExporting}
+          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-70 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors"
+        >
+          {isExporting ? "出力中..." : "CSV出力"}
+        </button>
       </div>
 
-      <p className="text-sm font-medium text-gray-700">{items.length}件</p>
+      <p className="text-sm font-medium text-gray-700">{filteredItems.length}件</p>
 
       <div className="space-y-3">
-        {items.map((item) => (
+        {filteredItems.map((item) => (
           <article key={item.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
@@ -201,7 +263,7 @@ export default function OrganizerEntriesPage({ params }: OrganizerEntriesPagePro
           </article>
         ))}
 
-        {items.length === 0 && (
+        {filteredItems.length === 0 && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-sm text-gray-500">エントリー申請はありません。</div>
         )}
       </div>
