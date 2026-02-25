@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { LoginFormData } from "@/types";
+import { login } from "@/lib/api";
 
 export default function LoginPage() {
   const [form, setForm] = useState<LoginFormData>({ email: "", password: "" });
@@ -14,15 +15,18 @@ export default function LoginPage() {
     setError("");
     setIsSubmitting(true);
 
-    await new Promise((resolve) => setTimeout(resolve, 700));
+    try {
+      const result = await login(form);
 
-    if (form.email !== "demo@example.com" || form.password !== "password123") {
-      setError("メールアドレスまたはパスワードが正しくありません");
+      localStorage.setItem("access_token", result.access_token);
+      localStorage.setItem("refresh_token", result.refresh_token);
+      localStorage.setItem("user", JSON.stringify(result.user));
+
+      window.location.href = "/";
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "ログインに失敗しました");
       setIsSubmitting(false);
-      return;
     }
-
-    window.location.href = "/";
   };
 
   return (

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { featuredEvents } from "@/lib/mock-data";
+import { getEvent } from "@/lib/api";
+import { EventCard } from "@/types";
 
 type EventDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -8,7 +10,13 @@ type EventDetailPageProps = {
 
 export default async function EventDetailPage({ params }: EventDetailPageProps) {
   const { id } = await params;
-  const event = featuredEvents.find((item) => item.id === id);
+  let event: EventCard | undefined;
+
+  try {
+    event = await getEvent(id);
+  } catch {
+    event = featuredEvents.find((item) => item.id === id);
+  }
 
   if (!event) {
     notFound();

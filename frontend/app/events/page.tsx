@@ -1,22 +1,51 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { featuredEvents } from "@/lib/mock-data";
+import { listEvents } from "@/lib/api";
+import { EventCard } from "@/types";
 
 export default function EventsPage() {
   const [searchWord, setSearchWord] = useState("");
+  const [eventsFromAPI, setEventsFromAPI] = useState<EventCard[]>(featuredEvents);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const load = async () => {
+      try {
+        const events = await listEvents(searchWord);
+        if (isActive) {
+          setEventsFromAPI(events);
+        }
+      } catch {
+        if (isActive) {
+          setEventsFromAPI(featuredEvents);
+        }
+      }
+    };
+
+    const id = setTimeout(() => {
+      void load();
+    }, 250);
+
+    return () => {
+      isActive = false;
+      clearTimeout(id);
+    };
+  }, [searchWord]);
 
   const events = useMemo(() => {
     const keyword = searchWord.trim().toLowerCase();
     if (!keyword) {
-      return featuredEvents;
+      return eventsFromAPI;
     }
-    return featuredEvents.filter((event) => {
+    return eventsFromAPI.filter((event) => {
       const target = `${event.title} ${event.venueName} ${event.description}`.toLowerCase();
       return target.includes(keyword);
     });
-  }, [searchWord]);
+  }, [eventsFromAPI, searchWord]);
 
   return (
     <div className="space-y-6">

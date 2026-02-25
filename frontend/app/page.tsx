@@ -4,7 +4,7 @@ import { featuredEvents } from "@/lib/mock-data";
 export default function Home() {
   return (
     <div className="space-y-12 py-8">
-      <section className="rounded-2xl bg-gradient-to-br from-blue-600 to-purple-700 px-6 py-14 text-white md:px-12">
+      <section className="rounded-2xl bg-linear-to-br from-blue-600 to-purple-700 px-6 py-14 text-white md:px-12">
         <h1 className="text-3xl font-bold md:text-5xl">ライブイベントを、もっと身近に。</h1>
         <p className="mt-4 max-w-2xl text-blue-50">
           EventManager は、ライブイベントの検索・予約・出演管理を一つにまとめたプラットフォームです。

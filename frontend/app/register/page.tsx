@@ -2,6 +2,7 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { RegisterFormData } from "@/types";
+import { register } from "@/lib/api";
 
 const initialForm: RegisterFormData = {
   userType: "audience",
@@ -53,15 +54,18 @@ export default function RegisterPage() {
     }
 
     setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 700));
+    try {
+      const result = await register(form);
 
-    if (form.email === "used@example.com") {
-      setError("このメールアドレスは既に使用されています");
+      localStorage.setItem("access_token", result.access_token);
+      localStorage.setItem("refresh_token", result.refresh_token);
+      localStorage.setItem("user", JSON.stringify(result.user));
+
+      window.location.href = "/";
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "登録に失敗しました");
       setIsSubmitting(false);
-      return;
     }
-
-    window.location.href = "/";
   };
 
   return (
