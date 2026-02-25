@@ -203,7 +203,7 @@ func (s *PostgresStore) UpdateUser(userID string, firstName string, lastName str
 	return user, nil
 }
 
-func (s *PostgresStore) ListEvents(status string, search string) []model.Event {
+func (s *PostgresStore) ListEvents(status string, search string, organizerID string) []model.Event {
 	base := `
 		SELECT id, organizer_id, title, description, venue_name, venue_address, event_date, doors_open_time, start_time, end_time, ticket_price, capacity, status, created_at, updated_at
 		FROM events
@@ -225,6 +225,12 @@ func (s *PostgresStore) ListEvents(status string, search string) []model.Event {
 		idx++
 	}
 
+	if strings.TrimSpace(organizerID) != "" {
+		base += fmt.Sprintf(" AND organizer_id = $%d", idx)
+		args = append(args, organizerID)
+		idx++
+	}
+
 	base += " ORDER BY event_date ASC, start_time ASC"
 
 	rows, err := s.db.Query(base, args...)
@@ -242,6 +248,38 @@ func (s *PostgresStore) ListEvents(status string, search string) []model.Event {
 	}
 
 	return result
+}
+
+func (s *PostgresStore) CreateEvent(input model.CreateEventInput) (model.Event, error) {
+	const q = `
+		INSERT INTO events (
+			organizer_id, title, description, venue_name, venue_address, event_date, doors_open_time, start_time, end_time, ticket_price, capacity, status
+		) VALUES (
+			$1, $2, $3, $4, $5, $6::date, $7::time, $8::time, $9::time, $10, $11, $12
+		)
+		RETURNING id, organizer_id, title, description, venue_name, venue_address, event_date, doors_open_time, start_time, end_time, ticket_price, capacity, status, created_at, updated_at
+	`
+
+	event, ok := scanEvent(s.db.QueryRow(
+		q,
+		input.OrganizerID,
+		input.Title,
+		input.Description,
+		input.VenueName,
+		input.VenueAddress,
+		input.EventDate,
+		input.DoorsOpenTime,
+		input.StartTime,
+		input.EndTime,
+		input.TicketPrice,
+		input.Capacity,
+		string(input.Status),
+	))
+	if !ok {
+		return model.Event{}, ErrNotFound
+	}
+
+	return event, nil
 }
 
 func (s *PostgresStore) GetEventByID(id string) (model.Event, bool) {

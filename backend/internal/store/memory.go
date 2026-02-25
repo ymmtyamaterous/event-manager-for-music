@@ -109,13 +109,17 @@ func (s *MemoryStore) UpdateUser(userID string, firstName string, lastName strin
 	return user, nil
 }
 
-func (s *MemoryStore) ListEvents(status string, search string) []model.Event {
+func (s *MemoryStore) ListEvents(status string, search string, organizerID string) []model.Event {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	searchLower := strings.ToLower(strings.TrimSpace(search))
 	result := make([]model.Event, 0, len(s.eventsByID))
 	for _, event := range s.eventsByID {
+		if organizerID != "" && event.OrganizerID != organizerID {
+			continue
+		}
+
 		if status != "" && string(event.Status) != status {
 			continue
 		}
@@ -135,6 +139,41 @@ func (s *MemoryStore) ListEvents(status string, search string) []model.Event {
 	}
 
 	return result
+}
+
+func (s *MemoryStore) CreateEvent(input model.CreateEventInput) (model.Event, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	owner, exists := s.usersByID[input.OrganizerID]
+	if !exists {
+		return model.Event{}, ErrNotFound
+	}
+	if owner.UserType != model.UserTypeOrganizer {
+		return model.Event{}, ErrForbidden
+	}
+
+	now := nowInTokyo()
+	event := model.Event{
+		ID:            uuid.NewString(),
+		OrganizerID:   input.OrganizerID,
+		Title:         input.Title,
+		Description:   input.Description,
+		VenueName:     input.VenueName,
+		VenueAddress:  input.VenueAddress,
+		EventDate:     input.EventDate,
+		DoorsOpenTime: input.DoorsOpenTime,
+		StartTime:     input.StartTime,
+		EndTime:       input.EndTime,
+		TicketPrice:   input.TicketPrice,
+		Capacity:      input.Capacity,
+		Status:        input.Status,
+		CreatedAt:     now,
+		UpdatedAt:     now,
+	}
+
+	s.eventsByID[event.ID] = event
+	return event, nil
 }
 
 func (s *MemoryStore) GetEventByID(id string) (model.Event, bool) {

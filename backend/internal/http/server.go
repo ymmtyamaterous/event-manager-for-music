@@ -48,6 +48,20 @@ type updateMeRequest struct {
 	Email       string `json:"email"`
 }
 
+type createEventRequest struct {
+	Title         string `json:"title"`
+	Description   string `json:"description"`
+	VenueName     string `json:"venue_name"`
+	VenueAddress  string `json:"venue_address"`
+	EventDate     string `json:"event_date"`
+	DoorsOpenTime string `json:"doors_open_time"`
+	StartTime     string `json:"start_time"`
+	EndTime       string `json:"end_time"`
+	TicketPrice   *int   `json:"ticket_price"`
+	Capacity      *int   `json:"capacity"`
+	Status        string `json:"status"`
+}
+
 type refreshRequest struct {
 	RefreshToken string `json:"refresh_token"`
 }
@@ -96,6 +110,7 @@ func NewServer(cfg config.Config) *Server {
 	mux.HandleFunc("GET /api/v1/users/me", app.handleGetMe)
 	mux.HandleFunc("PATCH /api/v1/users/me", app.handlePatchMe)
 	mux.HandleFunc("GET /api/v1/events", app.handleListEvents)
+	mux.HandleFunc("POST /api/v1/events", app.handleCreateEvent)
 	mux.HandleFunc("GET /api/v1/events/{id}", app.handleGetEvent)
 	mux.HandleFunc("POST /api/v1/events/{id}/reservations", app.handleCreateReservation)
 	mux.HandleFunc("GET /api/v1/reservations/me", app.handleListMyReservations)
@@ -295,9 +310,87 @@ func (a *app) handlePatchMe(w http.ResponseWriter, r *http.Request) {
 func (a *app) handleListEvents(w http.ResponseWriter, r *http.Request) {
 	status := strings.TrimSpace(r.URL.Query().Get("status"))
 	search := strings.TrimSpace(r.URL.Query().Get("search"))
+	organizerID := strings.TrimSpace(r.URL.Query().Get("organizer_id"))
 
-	events := a.store.ListEvents(status, search)
+	events := a.store.ListEvents(status, search, organizerID)
 	writeJSON(w, http.StatusOK, events)
+}
+
+func (a *app) handleCreateEvent(w http.ResponseWriter, r *http.Request) {
+	claims, err := a.parseAccessTokenFromHeader(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	if claims.UserType != model.UserTypeOrganizer {
+		writeError(w, http.StatusForbidden, "運営者ユーザーのみイベントを作成できます")
+		return
+	}
+
+	var req createEventRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "リクエスト形式が不正です")
+		return
+	}
+
+	req.Title = strings.TrimSpace(req.Title)
+	req.VenueName = strings.TrimSpace(req.VenueName)
+	req.VenueAddress = strings.TrimSpace(req.VenueAddress)
+	req.EventDate = strings.TrimSpace(req.EventDate)
+	req.DoorsOpenTime = strings.TrimSpace(req.DoorsOpenTime)
+	req.StartTime = strings.TrimSpace(req.StartTime)
+	req.Status = strings.TrimSpace(req.Status)
+
+	if req.Title == "" || req.VenueName == "" || req.VenueAddress == "" || req.EventDate == "" || req.DoorsOpenTime == "" || req.StartTime == "" {
+		writeError(w, http.StatusBadRequest, "必須項目が不足しています")
+		return
+	}
+
+	eventStatus := model.EventStatus(req.Status)
+	if eventStatus != model.EventStatusDraft && eventStatus != model.EventStatusPublished {
+		writeError(w, http.StatusBadRequest, "status は draft または published を指定してください")
+		return
+	}
+
+	var description *string
+	if strings.TrimSpace(req.Description) != "" {
+		v := strings.TrimSpace(req.Description)
+		description = &v
+	}
+
+	var endTime *string
+	if strings.TrimSpace(req.EndTime) != "" {
+		v := strings.TrimSpace(req.EndTime)
+		endTime = &v
+	}
+
+	createdEvent, err := a.store.CreateEvent(model.CreateEventInput{
+		OrganizerID:   claims.UserID,
+		Title:         req.Title,
+		Description:   description,
+		VenueName:     req.VenueName,
+		VenueAddress:  req.VenueAddress,
+		EventDate:     req.EventDate,
+		DoorsOpenTime: req.DoorsOpenTime,
+		StartTime:     req.StartTime,
+		EndTime:       endTime,
+		TicketPrice:   req.TicketPrice,
+		Capacity:      req.Capacity,
+		Status:        eventStatus,
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrForbidden):
+			writeError(w, http.StatusForbidden, "運営者ユーザーのみイベントを作成できます")
+		case errors.Is(err, store.ErrNotFound):
+			writeError(w, http.StatusNotFound, "ユーザーが存在しません")
+		default:
+			writeError(w, http.StatusInternalServerError, "サーバーエラー")
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, createdEvent)
 }
 
 func (a *app) handleGetEvent(w http.ResponseWriter, r *http.Request) {

@@ -15,6 +15,12 @@ export function Header() {
           <Link href="/audience" className="hover:text-blue-700 transition-colors">
             マイページ
           </Link>
+          <Link href="/organizer" className="hover:text-blue-700 transition-colors">
+            運営
+          </Link>
+          <Link href="/performer" className="hover:text-blue-700 transition-colors">
+            出演者
+          </Link>
           <Link href="/profile" className="hover:text-blue-700 transition-colors">
             プロフィール
           </Link>

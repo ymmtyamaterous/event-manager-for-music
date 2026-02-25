@@ -73,10 +73,13 @@ export async function register(input: RegisterFormData): Promise<AuthResponse> {
   });
 }
 
-export async function listEvents(searchWord: string): Promise<EventCard[]> {
+export async function listEvents(searchWord: string, organizerId?: string): Promise<EventCard[]> {
   const params = new URLSearchParams({ status: "published" });
   if (searchWord.trim()) {
     params.set("search", searchWord.trim());
+  }
+  if (organizerId?.trim()) {
+    params.set("organizer_id", organizerId.trim());
   }
 
   const response = await request<APIEvent[]>(`/events?${params.toString()}`, {
@@ -84,6 +87,41 @@ export async function listEvents(searchWord: string): Promise<EventCard[]> {
   });
 
   return response.map(toEventCard);
+}
+
+type CreateEventInput = {
+  title: string;
+  description?: string;
+  venueName: string;
+  venueAddress: string;
+  eventDate: string;
+  doorsOpenTime: string;
+  startTime: string;
+  endTime?: string;
+  ticketPrice?: number;
+  capacity?: number;
+  status: "draft" | "published";
+};
+
+export async function createEvent(accessToken: string, input: CreateEventInput): Promise<EventCard> {
+  const response = await requestAuth<APIEvent>("/events", accessToken, {
+    method: "POST",
+    body: JSON.stringify({
+      title: input.title,
+      description: input.description,
+      venue_name: input.venueName,
+      venue_address: input.venueAddress,
+      event_date: input.eventDate,
+      doors_open_time: input.doorsOpenTime,
+      start_time: input.startTime,
+      end_time: input.endTime,
+      ticket_price: input.ticketPrice,
+      capacity: input.capacity,
+      status: input.status,
+    }),
+  });
+
+  return toEventCard(response);
 }
 
 export async function getEvent(id: string): Promise<EventCard> {
