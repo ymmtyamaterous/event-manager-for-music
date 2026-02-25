@@ -74,3 +74,14 @@
 | フロントエンド | 3000 | Next.js 開発サーバー |
 | バックエンド API | 8000 | Go API サーバー |
 | pgAdmin | 5050 | DB 管理画面 |
+
+## バックエンドを Air で実行する
+
+Dev Container 内で以下を実行してください。
+
+```bash
+cd backend
+air
+```
+
+`backend/.air.toml` を用いて `./cmd/api` を監視し、変更時に自動で再ビルド・再起動します。
