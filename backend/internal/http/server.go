@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 
@@ -22,7 +23,7 @@ type healthResponse struct {
 }
 
 type app struct {
-	store      *store.MemoryStore
+	store      store.Repository
 	jwtManager *auth.JWTManager
 }
 
@@ -59,8 +60,21 @@ type errorResponse struct {
 }
 
 func NewServer(cfg config.Config) *Server {
+	var repository store.Repository
+	if strings.TrimSpace(cfg.DatabaseURL) != "" {
+		postgresStore, err := store.NewPostgresStore(cfg.DatabaseURL)
+		if err != nil {
+			log.Printf("postgres接続に失敗したためメモリストアで起動します: %v", err)
+			repository = store.NewMemoryStore()
+		} else {
+			repository = postgresStore
+		}
+	} else {
+		repository = store.NewMemoryStore()
+	}
+
 	app := &app{
-		store:      store.NewMemoryStore(),
+		store:      repository,
 		jwtManager: auth.NewJWTManager(cfg.JWTSecret),
 	}
 

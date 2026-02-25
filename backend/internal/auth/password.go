@@ -1,12 +1,10 @@
 package auth
 
 import (
-	"regexp"
+	"unicode"
 
 	"golang.org/x/crypto/bcrypt"
 )
-
-var passwordPattern = regexp.MustCompile(`^(?=.*[A-Za-z])(?=.*\d).{8,}$`)
 
 func HashPassword(password string) (string, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), 10)
@@ -21,5 +19,21 @@ func VerifyPassword(hashedPassword string, password string) bool {
 }
 
 func IsPasswordStrong(password string) bool {
-	return passwordPattern.MatchString(password)
+	if len(password) < 8 {
+		return false
+	}
+
+	hasLetter := false
+	hasDigit := false
+
+	for _, r := range password {
+		if unicode.IsLetter(r) {
+			hasLetter = true
+		}
+		if unicode.IsDigit(r) {
+			hasDigit = true
+		}
+	}
+
+	return hasLetter && hasDigit
 }
