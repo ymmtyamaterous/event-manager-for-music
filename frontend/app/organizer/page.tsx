@@ -104,6 +104,9 @@ export default function OrganizerPage() {
                   <Link href={`/organizer/events/${event.id}`} className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold py-1.5 px-3 rounded-lg transition-colors">
                     詳細
                   </Link>
+                  <Link href={`/organizer/events/${event.id}/announcements`} className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold py-1.5 px-3 rounded-lg transition-colors">
+                    お知らせ
+                  </Link>
                   <Link href={`/organizer/events/${event.id}/edit`} className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-1.5 px-3 rounded-lg transition-colors">
                     編集
                   </Link>
@@ -128,6 +131,9 @@ export default function OrganizerPage() {
                 <div className="mt-3 flex gap-2">
                   <Link href={`/organizer/events/${event.id}`} className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold py-1.5 px-3 rounded-lg transition-colors">
                     詳細
+                  </Link>
+                  <Link href={`/organizer/events/${event.id}/announcements`} className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold py-1.5 px-3 rounded-lg transition-colors">
+                    お知らせ
                   </Link>
                   <Link href={`/organizer/events/${event.id}/edit`} className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-1.5 px-3 rounded-lg transition-colors">
                     編集

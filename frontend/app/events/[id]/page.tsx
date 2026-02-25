@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { featuredEvents } from "@/lib/mock-data";
-import { getEvent } from "@/lib/api";
-import { EventCard } from "@/types";
+import { getEvent, listEventAnnouncements } from "@/lib/api";
+import { Announcement, EventCard } from "@/types";
 import { ReservationPanel } from "@/components/events/ReservationPanel";
 
 type EventDetailPageProps = {
@@ -12,6 +12,7 @@ type EventDetailPageProps = {
 export default async function EventDetailPage({ params }: EventDetailPageProps) {
   const { id } = await params;
   let event: EventCard | undefined;
+  let announcements: Announcement[] = [];
 
   try {
     event = await getEvent(id);
@@ -21,6 +22,12 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
 
   if (!event) {
     notFound();
+  }
+
+  try {
+    announcements = await listEventAnnouncements(event.id);
+  } catch {
+    announcements = [];
   }
 
   return (
@@ -44,7 +51,19 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
 
         <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-lg font-bold text-gray-900">お知らせ</h2>
-          <p className="mt-2 text-sm text-gray-600">お知らせデータは今後実装予定です。</p>
+          {announcements.length === 0 ? (
+            <p className="mt-2 text-sm text-gray-600">現在、お知らせはありません。</p>
+          ) : (
+            <div className="mt-3 space-y-3">
+              {announcements.map((item) => (
+                <article key={item.id} className="rounded-lg border border-gray-200 p-4">
+                  <h3 className="text-sm font-bold text-gray-900">{item.title}</h3>
+                  <p className="mt-1 text-xs text-gray-500">{new Date(item.publishedAt).toLocaleString("ja-JP")}</p>
+                  <p className="mt-2 whitespace-pre-wrap text-sm text-gray-700">{item.content}</p>
+                </article>
+              ))}
+            </div>
+          )}
         </section>
       </div>
 
