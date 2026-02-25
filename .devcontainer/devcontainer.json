@@ -1,0 +1,54 @@
+{
+    "name": "event-manager-for-music-container-dev",
+    "dockerComposeFile": "../infra/compose.yml",
+    "service": "dev",
+    "workspaceFolder": "/workspace",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "mhutchie.git-graph",
+                "GitHub.copilot",
+                "golang.go",
+                "ms-azuretools.vscode-containers",
+                "christian-kohler.path-intellisense",
+                "usernamehw.errorlens",
+                "bradlc.vscode-tailwindcss",
+                "dbaeumer.vscode-eslint",
+                "infeng.vscode-react-typescript",
+                "esbenp.prettier-vscode",
+                "christian-kohler.npm-intellisense",
+                "GitHub.vscode-github-actions"
+            ],
+            "settings": {
+                "workbench.colorCustomizations": {
+                    "activityBar.activeBackground": "#6ac865",
+                    "activityBar.background": "#717039",
+                    "activityBar.foreground": "#15202b",
+                    "activityBar.inactiveForeground": "#15202b99",
+                    "activityBarBadge.background": "#945bc4",
+                    "activityBarBadge.foreground": "#e7e7e7",
+                    "commandCenter.border": "#15202b99",
+                    "sash.hoverBorder": "#65c89b",
+                    "statusBar.background": "#b84281",
+                    "statusBar.foreground": "#15202b",
+                    "statusBarItem.hoverBackground": "#359268",
+                    "statusBarItem.remoteBackground": "#b88b42",
+                    "statusBarItem.remoteForeground": "#15202b",
+                    "titleBar.activeBackground": "#b84252",
+                    "titleBar.activeForeground": "#15202b",
+                    "titleBar.inactiveBackground": "#4254b899",
+                    "titleBar.inactiveForeground": "#15202b99"
+                },
+                "explorer.compactFolders": false,
+                "github.copilot.chat.commitMessageGeneration.instructions": [
+                    {
+                        "text": "日本語で生成してください。"
+                    }
+                ],
+                "files.associations": {
+                    "*.css": "tailwindcss"
+                }
+            }
+        }
+    }
+}
