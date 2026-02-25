@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { featuredEvents } from "@/lib/mock-data";
 import { getEvent } from "@/lib/api";
 import { EventCard } from "@/types";
+import { ReservationPanel } from "@/components/events/ReservationPanel";
 
 type EventDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -49,14 +50,8 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
 
       <aside className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 h-fit">
         <h2 className="text-lg font-bold text-gray-900">予約</h2>
-        <p className="mt-2 text-sm text-gray-600">予約にはログインが必要です。</p>
         <div className="mt-4 space-y-2">
-          <Link
-            href="/login"
-            className="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
-          >
-            ログインして予約
-          </Link>
+          <ReservationPanel eventId={event.id} />
           <Link
             href="/events"
             className="block w-full text-center border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-2 px-4 rounded-lg transition-colors"

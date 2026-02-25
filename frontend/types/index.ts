@@ -28,3 +28,17 @@ export type RegisterFormData = {
   confirmPassword: string;
   agreedToTerms: boolean;
 };
+
+export type ReservationStatus = "reserved" | "cancelled";
+
+export type Reservation = {
+  id: string;
+  eventId: string;
+  userId: string;
+  reservationNumber: string;
+  status: ReservationStatus;
+  reservedAt: string;
+  cancelledAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};

@@ -89,6 +89,9 @@ func NewServer(cfg config.Config) *Server {
 	mux.HandleFunc("GET /api/v1/users/me", app.handleGetMe)
 	mux.HandleFunc("GET /api/v1/events", app.handleListEvents)
 	mux.HandleFunc("GET /api/v1/events/{id}", app.handleGetEvent)
+	mux.HandleFunc("POST /api/v1/events/{id}/reservations", app.handleCreateReservation)
+	mux.HandleFunc("GET /api/v1/reservations/me", app.handleListMyReservations)
+	mux.HandleFunc("PATCH /api/v1/reservations/{id}/cancel", app.handleCancelReservation)
 
 	server := &http.Server{
 		Addr:    cfg.Address(),
@@ -264,6 +267,72 @@ func (a *app) handleGetEvent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, event)
+}
+
+func (a *app) handleCreateReservation(w http.ResponseWriter, r *http.Request) {
+	claims, err := a.parseAccessTokenFromHeader(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	eventID := r.PathValue("id")
+	reservation, err := a.store.CreateReservation(claims.UserID, eventID)
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrForbidden):
+			writeError(w, http.StatusForbidden, "観客ユーザーのみ予約できます")
+		case errors.Is(err, store.ErrNotFound):
+			writeError(w, http.StatusNotFound, "イベントまたはユーザーが存在しません")
+		case errors.Is(err, store.ErrCapacityFull):
+			writeError(w, http.StatusConflict, "定員に達しているため予約できません")
+		case errors.Is(err, store.ErrConflict):
+			writeError(w, http.StatusConflict, "同一イベントへの重複予約はできません")
+		default:
+			writeError(w, http.StatusInternalServerError, "サーバーエラー")
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, reservation)
+}
+
+func (a *app) handleListMyReservations(w http.ResponseWriter, r *http.Request) {
+	claims, err := a.parseAccessTokenFromHeader(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	status := strings.TrimSpace(r.URL.Query().Get("status"))
+	reservations := a.store.ListReservationsByUser(claims.UserID, status)
+	writeJSON(w, http.StatusOK, reservations)
+}
+
+func (a *app) handleCancelReservation(w http.ResponseWriter, r *http.Request) {
+	claims, err := a.parseAccessTokenFromHeader(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	reservationID := r.PathValue("id")
+	reservation, err := a.store.CancelReservation(claims.UserID, reservationID)
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrForbidden):
+			writeError(w, http.StatusForbidden, "この予約をキャンセルする権限がありません")
+		case errors.Is(err, store.ErrNotFound):
+			writeError(w, http.StatusNotFound, "予約が存在しません")
+		case errors.Is(err, store.ErrConflict):
+			writeError(w, http.StatusConflict, "既にキャンセル済みです")
+		default:
+			writeError(w, http.StatusInternalServerError, "サーバーエラー")
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusOK, reservation)
 }
 
 func (a *app) parseAccessTokenFromHeader(r *http.Request) (*auth.Claims, error) {

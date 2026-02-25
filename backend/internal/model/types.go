@@ -49,3 +49,22 @@ type Event struct {
 	CreatedAt     time.Time   `json:"created_at"`
 	UpdatedAt     time.Time   `json:"updated_at"`
 }
+
+type ReservationStatus string
+
+const (
+	ReservationStatusReserved  ReservationStatus = "reserved"
+	ReservationStatusCancelled ReservationStatus = "cancelled"
+)
+
+type Reservation struct {
+	ID                string            `json:"id"`
+	EventID           string            `json:"event_id"`
+	UserID            string            `json:"user_id"`
+	ReservationNumber string            `json:"reservation_number"`
+	Status            ReservationStatus `json:"status"`
+	ReservedAt        time.Time         `json:"reserved_at"`
+	CancelledAt       *time.Time        `json:"cancelled_at"`
+	CreatedAt         time.Time         `json:"created_at"`
+	UpdatedAt         time.Time         `json:"updated_at"`
+}

@@ -1,6 +1,8 @@
 package store
 
 import (
+	"fmt"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -10,17 +12,19 @@ import (
 )
 
 type MemoryStore struct {
-	mu          sync.RWMutex
-	usersByID   map[string]model.User
-	userByEmail map[string]string
-	eventsByID  map[string]model.Event
+	mu               sync.RWMutex
+	usersByID        map[string]model.User
+	userByEmail      map[string]string
+	eventsByID       map[string]model.Event
+	reservationsByID map[string]model.Reservation
 }
 
 func NewMemoryStore() *MemoryStore {
 	s := &MemoryStore{
-		usersByID:   map[string]model.User{},
-		userByEmail: map[string]string{},
-		eventsByID:  map[string]model.Event{},
+		usersByID:        map[string]model.User{},
+		userByEmail:      map[string]string{},
+		eventsByID:       map[string]model.Event{},
+		reservationsByID: map[string]model.Reservation{},
 	}
 	s.seedEvents()
 	return s
@@ -103,6 +107,103 @@ func (s *MemoryStore) GetEventByID(id string) (model.Event, bool) {
 	return e, ok
 }
 
+func (s *MemoryStore) CreateReservation(userID string, eventID string) (model.Reservation, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	user, userExists := s.usersByID[userID]
+	if !userExists {
+		return model.Reservation{}, ErrNotFound
+	}
+	if user.UserType != model.UserTypeAudience {
+		return model.Reservation{}, ErrForbidden
+	}
+
+	event, eventExists := s.eventsByID[eventID]
+	if !eventExists || event.Status != model.EventStatusPublished {
+		return model.Reservation{}, ErrNotFound
+	}
+
+	for _, reservation := range s.reservationsByID {
+		if reservation.EventID == eventID && reservation.UserID == userID && reservation.Status == model.ReservationStatusReserved {
+			return model.Reservation{}, ErrConflict
+		}
+	}
+
+	if event.Capacity != nil {
+		reservedCount := 0
+		for _, reservation := range s.reservationsByID {
+			if reservation.EventID == eventID && reservation.Status == model.ReservationStatusReserved {
+				reservedCount++
+			}
+		}
+		if reservedCount >= *event.Capacity {
+			return model.Reservation{}, ErrCapacityFull
+		}
+	}
+
+	now := nowInTokyo()
+	reservation := model.Reservation{
+		ID:                uuid.NewString(),
+		EventID:           eventID,
+		UserID:            userID,
+		ReservationNumber: generateReservationNumber(),
+		Status:            model.ReservationStatusReserved,
+		ReservedAt:        now,
+		CreatedAt:         now,
+		UpdatedAt:         now,
+	}
+
+	s.reservationsByID[reservation.ID] = reservation
+	return reservation, nil
+}
+
+func (s *MemoryStore) ListReservationsByUser(userID string, status string) []model.Reservation {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	result := make([]model.Reservation, 0)
+	for _, reservation := range s.reservationsByID {
+		if reservation.UserID != userID {
+			continue
+		}
+		if status != "" && string(reservation.Status) != status {
+			continue
+		}
+		result = append(result, reservation)
+	}
+
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].ReservedAt.After(result[j].ReservedAt)
+	})
+
+	return result
+}
+
+func (s *MemoryStore) CancelReservation(userID string, reservationID string) (model.Reservation, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	reservation, exists := s.reservationsByID[reservationID]
+	if !exists {
+		return model.Reservation{}, ErrNotFound
+	}
+	if reservation.UserID != userID {
+		return model.Reservation{}, ErrForbidden
+	}
+	if reservation.Status == model.ReservationStatusCancelled {
+		return model.Reservation{}, ErrConflict
+	}
+
+	now := nowInTokyo()
+	reservation.Status = model.ReservationStatusCancelled
+	reservation.CancelledAt = &now
+	reservation.UpdatedAt = now
+
+	s.reservationsByID[reservation.ID] = reservation
+	return reservation, nil
+}
+
 func (s *MemoryStore) seedEvents() {
 	now := nowInTokyo()
 	ticketPrice1 := 3000
@@ -180,4 +281,8 @@ func nowInTokyo() time.Time {
 		return time.Now()
 	}
 	return time.Now().In(loc)
+}
+
+func generateReservationNumber() string {
+	return fmt.Sprintf("RES%d", time.Now().UnixMilli())
 }

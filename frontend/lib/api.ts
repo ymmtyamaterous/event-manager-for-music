@@ -1,4 +1,4 @@
-import { EventCard, RegisterFormData, UserType } from "@/types";
+import { EventCard, RegisterFormData, Reservation, UserType } from "@/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000/api/v1";
 
@@ -33,6 +33,18 @@ type APIEvent = {
   ticket_price: number | null;
   capacity: number | null;
   status: "draft" | "published" | "cancelled";
+};
+
+type APIReservation = {
+  id: string;
+  event_id: string;
+  user_id: string;
+  reservation_number: string;
+  status: "reserved" | "cancelled";
+  reserved_at: string;
+  cancelled_at: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 type LoginInput = {
@@ -82,6 +94,38 @@ export async function getEvent(id: string): Promise<EventCard> {
   return toEventCard(response);
 }
 
+export async function createReservation(eventId: string, accessToken: string): Promise<Reservation> {
+  const response = await requestAuth<APIReservation>(`/events/${eventId}/reservations`, accessToken, {
+    method: "POST",
+  });
+
+  return toReservation(response);
+}
+
+export async function listMyReservations(accessToken: string, status?: "reserved" | "cancelled"): Promise<Reservation[]> {
+  const params = new URLSearchParams();
+  if (status) {
+    params.set("status", status);
+  }
+
+  const query = params.toString();
+  const path = query ? `/reservations/me?${query}` : "/reservations/me";
+
+  const response = await requestAuth<APIReservation[]>(path, accessToken, {
+    method: "GET",
+  });
+
+  return response.map(toReservation);
+}
+
+export async function cancelReservation(reservationId: string, accessToken: string): Promise<Reservation> {
+  const response = await requestAuth<APIReservation>(`/reservations/${reservationId}/cancel`, accessToken, {
+    method: "PATCH",
+  });
+
+  return toReservation(response);
+}
+
 function toEventCard(event: APIEvent): EventCard {
   return {
     id: event.id,
@@ -92,6 +136,20 @@ function toEventCard(event: APIEvent): EventCard {
     ticketPrice: event.ticket_price,
     capacity: event.capacity,
     status: event.status,
+  };
+}
+
+function toReservation(reservation: APIReservation): Reservation {
+  return {
+    id: reservation.id,
+    eventId: reservation.event_id,
+    userId: reservation.user_id,
+    reservationNumber: reservation.reservation_number,
+    status: reservation.status,
+    reservedAt: reservation.reserved_at,
+    cancelledAt: reservation.cancelled_at,
+    createdAt: reservation.created_at,
+    updatedAt: reservation.updated_at,
   };
 }
 
@@ -111,4 +169,14 @@ async function request<T>(path: string, init: RequestInit): Promise<T> {
   }
 
   return (await response.json()) as T;
+}
+
+async function requestAuth<T>(path: string, accessToken: string, init: RequestInit): Promise<T> {
+  return request<T>(path, {
+    ...init,
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      ...(init.headers ?? {}),
+    },
+  });
 }

@@ -8,4 +8,7 @@ type Repository interface {
 	GetUserByID(id string) (model.User, bool)
 	ListEvents(status string, search string) []model.Event
 	GetEventByID(id string) (model.Event, bool)
+	CreateReservation(userID string, eventID string) (model.Reservation, error)
+	ListReservationsByUser(userID string, status string) []model.Reservation
+	CancelReservation(userID string, reservationID string) (model.Reservation, error)
 }

@@ -202,7 +202,181 @@ func (s *PostgresStore) GetEventByID(id string) (model.Event, bool) {
 	return event, ok
 }
 
+func (s *PostgresStore) CreateReservation(userID string, eventID string) (model.Reservation, error) {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return model.Reservation{}, err
+	}
+	defer tx.Rollback()
+
+	var userType string
+	err = tx.QueryRow(`SELECT user_type FROM users WHERE id = $1`, userID).Scan(&userType)
+	if errors.Is(err, sql.ErrNoRows) {
+		return model.Reservation{}, ErrNotFound
+	}
+	if err != nil {
+		return model.Reservation{}, err
+	}
+	if userType != string(model.UserTypeAudience) {
+		return model.Reservation{}, ErrForbidden
+	}
+
+	var capacity sql.NullInt32
+	err = tx.QueryRow(`SELECT capacity FROM events WHERE id = $1 AND status = 'published'`, eventID).Scan(&capacity)
+	if errors.Is(err, sql.ErrNoRows) {
+		return model.Reservation{}, ErrNotFound
+	}
+	if err != nil {
+		return model.Reservation{}, err
+	}
+
+	var duplicatedCount int
+	err = tx.QueryRow(
+		`SELECT COUNT(*) FROM reservations WHERE event_id = $1 AND user_id = $2 AND status = 'reserved'`,
+		eventID,
+		userID,
+	).Scan(&duplicatedCount)
+	if err != nil {
+		return model.Reservation{}, err
+	}
+	if duplicatedCount > 0 {
+		return model.Reservation{}, ErrConflict
+	}
+
+	if capacity.Valid {
+		var reservedCount int
+		err = tx.QueryRow(
+			`SELECT COUNT(*) FROM reservations WHERE event_id = $1 AND status = 'reserved'`,
+			eventID,
+		).Scan(&reservedCount)
+		if err != nil {
+			return model.Reservation{}, err
+		}
+		if reservedCount >= int(capacity.Int32) {
+			return model.Reservation{}, ErrCapacityFull
+		}
+	}
+
+	reservationNumber := generateReservationNumber()
+	const q = `
+		INSERT INTO reservations (event_id, user_id, reservation_number, status)
+		VALUES ($1, $2, $3, 'reserved')
+		RETURNING id, event_id, user_id, reservation_number, status, reserved_at, cancelled_at, created_at, updated_at
+	`
+
+	var reservation model.Reservation
+	var status string
+	var cancelledAt sql.NullTime
+	err = tx.QueryRow(q, eventID, userID, reservationNumber).Scan(
+		&reservation.ID,
+		&reservation.EventID,
+		&reservation.UserID,
+		&reservation.ReservationNumber,
+		&status,
+		&reservation.ReservedAt,
+		&cancelledAt,
+		&reservation.CreatedAt,
+		&reservation.UpdatedAt,
+	)
+	if err != nil {
+		if isUniqueViolation(err) {
+			return model.Reservation{}, ErrConflict
+		}
+		return model.Reservation{}, err
+	}
+
+	reservation.Status = model.ReservationStatus(status)
+	if cancelledAt.Valid {
+		v := cancelledAt.Time
+		reservation.CancelledAt = &v
+	}
+
+	if err := tx.Commit(); err != nil {
+		return model.Reservation{}, err
+	}
+
+	return reservation, nil
+}
+
+func (s *PostgresStore) ListReservationsByUser(userID string, status string) []model.Reservation {
+	base := `
+		SELECT id, event_id, user_id, reservation_number, status, reserved_at, cancelled_at, created_at, updated_at
+		FROM reservations
+		WHERE user_id = $1
+	`
+
+	args := []any{userID}
+	if strings.TrimSpace(status) != "" {
+		base += " AND status = $2"
+		args = append(args, status)
+	}
+
+	base += " ORDER BY reserved_at DESC"
+
+	rows, err := s.db.Query(base, args...)
+	if err != nil {
+		return []model.Reservation{}
+	}
+	defer rows.Close()
+
+	result := make([]model.Reservation, 0)
+	for rows.Next() {
+		reservation, ok := scanReservation(rows)
+		if ok {
+			result = append(result, reservation)
+		}
+	}
+
+	return result
+}
+
+func (s *PostgresStore) CancelReservation(userID string, reservationID string) (model.Reservation, error) {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return model.Reservation{}, err
+	}
+	defer tx.Rollback()
+
+	var ownerID string
+	var status string
+	err = tx.QueryRow(`SELECT user_id, status FROM reservations WHERE id = $1`, reservationID).Scan(&ownerID, &status)
+	if errors.Is(err, sql.ErrNoRows) {
+		return model.Reservation{}, ErrNotFound
+	}
+	if err != nil {
+		return model.Reservation{}, err
+	}
+	if ownerID != userID {
+		return model.Reservation{}, ErrForbidden
+	}
+	if status == string(model.ReservationStatusCancelled) {
+		return model.Reservation{}, ErrConflict
+	}
+
+	const q = `
+		UPDATE reservations
+		SET status = 'cancelled', cancelled_at = NOW(), updated_at = NOW()
+		WHERE id = $1
+		RETURNING id, event_id, user_id, reservation_number, status, reserved_at, cancelled_at, created_at, updated_at
+	`
+
+	reservation, ok := scanReservation(tx.QueryRow(q, reservationID))
+	if !ok {
+		return model.Reservation{}, errors.New("予約キャンセルに失敗しました")
+	}
+
+	if err := tx.Commit(); err != nil {
+		return model.Reservation{}, err
+	}
+
+	return reservation, nil
+}
+
 type eventScanner interface {
+	Scan(dest ...any) error
+}
+
+type reservationScanner interface {
 	Scan(dest ...any) error
 }
 
@@ -274,4 +448,33 @@ func isUniqueViolation(err error) bool {
 		return pgErr.Code == "23505"
 	}
 	return false
+}
+
+func scanReservation(scanner reservationScanner) (model.Reservation, bool) {
+	var reservation model.Reservation
+	var status string
+	var cancelledAt sql.NullTime
+
+	err := scanner.Scan(
+		&reservation.ID,
+		&reservation.EventID,
+		&reservation.UserID,
+		&reservation.ReservationNumber,
+		&status,
+		&reservation.ReservedAt,
+		&cancelledAt,
+		&reservation.CreatedAt,
+		&reservation.UpdatedAt,
+	)
+	if errors.Is(err, sql.ErrNoRows) || err != nil {
+		return model.Reservation{}, false
+	}
+
+	reservation.Status = model.ReservationStatus(status)
+	if cancelledAt.Valid {
+		v := cancelledAt.Time
+		reservation.CancelledAt = &v
+	}
+
+	return reservation, true
 }

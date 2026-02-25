@@ -164,6 +164,89 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /events/{id}/reservations:
+    post:
+      tags: [Events]
+      summary: イベント予約
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: 作成成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reservation"
+        "401":
+          description: 未認証
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: 権限なし
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: 重複または定員超過
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /reservations/me:
+    get:
+      tags: [Events]
+      summary: 自分の予約一覧取得
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [reserved, cancelled]
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Reservation"
+  /reservations/{id}/cancel:
+    patch:
+      tags: [Events]
+      summary: 予約キャンセル
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reservation"
+        "404":
+          description: 見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   securitySchemes:
     bearerAuth:
@@ -319,3 +402,39 @@ components:
         status:
           type: string
           enum: [draft, published]
+    Reservation:
+      type: object
+      required:
+        - id
+        - event_id
+        - user_id
+        - reservation_number
+        - status
+        - reserved_at
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+        event_id:
+          type: string
+        user_id:
+          type: string
+        reservation_number:
+          type: string
+        status:
+          type: string
+          enum: [reserved, cancelled]
+        reserved_at:
+          type: string
+          format: date-time
+        cancelled_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
