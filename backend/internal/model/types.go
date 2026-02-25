@@ -105,3 +105,13 @@ type ReservationWithUser struct {
 	UserDisplayName string `json:"user_display_name"`
 	UserEmail       string `json:"user_email"`
 }
+
+type Announcement struct {
+	ID          string    `json:"id"`
+	EventID     string    `json:"event_id"`
+	Title       string    `json:"title"`
+	Content     string    `json:"content"`
+	PublishedAt time.Time `json:"published_at"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}

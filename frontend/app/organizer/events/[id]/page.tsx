@@ -145,6 +145,12 @@ export default function OrganizerEventDetailPage({ params }: OrganizerEventDetai
           >
             予約者一覧
           </Link>
+          <Link
+            href={`/organizer/events/${event.id}/announcements`}
+            className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold py-2 px-3 rounded-lg transition-colors"
+          >
+            お知らせ管理
+          </Link>
         </div>
       </section>
 

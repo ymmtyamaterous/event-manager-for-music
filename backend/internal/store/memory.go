@@ -12,19 +12,21 @@ import (
 )
 
 type MemoryStore struct {
-	mu               sync.RWMutex
-	usersByID        map[string]model.User
-	userByEmail      map[string]string
-	eventsByID       map[string]model.Event
-	reservationsByID map[string]model.Reservation
+	mu                sync.RWMutex
+	usersByID         map[string]model.User
+	userByEmail       map[string]string
+	eventsByID        map[string]model.Event
+	reservationsByID  map[string]model.Reservation
+	announcementsByID map[string]model.Announcement
 }
 
 func NewMemoryStore() *MemoryStore {
 	s := &MemoryStore{
-		usersByID:        map[string]model.User{},
-		userByEmail:      map[string]string{},
-		eventsByID:       map[string]model.Event{},
-		reservationsByID: map[string]model.Reservation{},
+		usersByID:         map[string]model.User{},
+		userByEmail:       map[string]string{},
+		eventsByID:        map[string]model.Event{},
+		reservationsByID:  map[string]model.Reservation{},
+		announcementsByID: map[string]model.Announcement{},
 	}
 	s.seedEvents()
 	return s
@@ -400,6 +402,101 @@ func (s *MemoryStore) CancelReservation(userID string, reservationID string) (mo
 
 	s.reservationsByID[reservation.ID] = reservation
 	return reservation, nil
+}
+
+func (s *MemoryStore) ListAnnouncementsByEvent(eventID string) ([]model.Announcement, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if _, exists := s.eventsByID[eventID]; !exists {
+		return nil, ErrNotFound
+	}
+
+	result := make([]model.Announcement, 0)
+	for _, announcement := range s.announcementsByID {
+		if announcement.EventID == eventID {
+			result = append(result, announcement)
+		}
+	}
+
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].PublishedAt.After(result[j].PublishedAt)
+	})
+
+	return result, nil
+}
+
+func (s *MemoryStore) CreateAnnouncement(eventID string, organizerID string, title string, content string) (model.Announcement, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	event, exists := s.eventsByID[eventID]
+	if !exists {
+		return model.Announcement{}, ErrNotFound
+	}
+	if event.OrganizerID != organizerID {
+		return model.Announcement{}, ErrForbidden
+	}
+
+	now := nowInTokyo()
+	announcement := model.Announcement{
+		ID:          uuid.NewString(),
+		EventID:     eventID,
+		Title:       strings.TrimSpace(title),
+		Content:     strings.TrimSpace(content),
+		PublishedAt: now,
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	}
+
+	s.announcementsByID[announcement.ID] = announcement
+	return announcement, nil
+}
+
+func (s *MemoryStore) UpdateAnnouncement(eventID string, announcementID string, organizerID string, title string, content string) (model.Announcement, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	event, exists := s.eventsByID[eventID]
+	if !exists {
+		return model.Announcement{}, ErrNotFound
+	}
+	if event.OrganizerID != organizerID {
+		return model.Announcement{}, ErrForbidden
+	}
+
+	announcement, exists := s.announcementsByID[announcementID]
+	if !exists || announcement.EventID != eventID {
+		return model.Announcement{}, ErrNotFound
+	}
+
+	announcement.Title = strings.TrimSpace(title)
+	announcement.Content = strings.TrimSpace(content)
+	announcement.UpdatedAt = nowInTokyo()
+
+	s.announcementsByID[announcementID] = announcement
+	return announcement, nil
+}
+
+func (s *MemoryStore) DeleteAnnouncement(eventID string, announcementID string, organizerID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	event, exists := s.eventsByID[eventID]
+	if !exists {
+		return ErrNotFound
+	}
+	if event.OrganizerID != organizerID {
+		return ErrForbidden
+	}
+
+	announcement, exists := s.announcementsByID[announcementID]
+	if !exists || announcement.EventID != eventID {
+		return ErrNotFound
+	}
+
+	delete(s.announcementsByID, announcementID)
+	return nil
 }
 
 func (s *MemoryStore) seedEvents() {

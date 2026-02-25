@@ -607,6 +607,136 @@ func (s *PostgresStore) CancelReservation(userID string, reservationID string) (
 	return reservation, nil
 }
 
+func (s *PostgresStore) ListAnnouncementsByEvent(eventID string) ([]model.Announcement, error) {
+	var exists bool
+	err := s.db.QueryRow(`SELECT EXISTS(SELECT 1 FROM events WHERE id = $1)`, eventID).Scan(&exists)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, ErrNotFound
+	}
+
+	const q = `
+		SELECT id, event_id, title, content, published_at, created_at, updated_at
+		FROM announcements
+		WHERE event_id = $1
+		ORDER BY published_at DESC
+	`
+
+	rows, err := s.db.Query(q, eventID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result := make([]model.Announcement, 0)
+	for rows.Next() {
+		announcement, ok := scanAnnouncement(rows)
+		if ok {
+			result = append(result, announcement)
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (s *PostgresStore) CreateAnnouncement(eventID string, organizerID string, title string, content string) (model.Announcement, error) {
+	var ownerID string
+	err := s.db.QueryRow(`SELECT organizer_id FROM events WHERE id = $1`, eventID).Scan(&ownerID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return model.Announcement{}, ErrNotFound
+	}
+	if err != nil {
+		return model.Announcement{}, err
+	}
+	if ownerID != organizerID {
+		return model.Announcement{}, ErrForbidden
+	}
+
+	const q = `
+		INSERT INTO announcements (event_id, title, content)
+		VALUES ($1, $2, $3)
+		RETURNING id, event_id, title, content, published_at, created_at, updated_at
+	`
+
+	announcement, ok := scanAnnouncement(s.db.QueryRow(q, eventID, strings.TrimSpace(title), strings.TrimSpace(content)))
+	if !ok {
+		return model.Announcement{}, errors.New("お知らせ作成に失敗しました")
+	}
+
+	return announcement, nil
+}
+
+func (s *PostgresStore) UpdateAnnouncement(eventID string, announcementID string, organizerID string, title string, content string) (model.Announcement, error) {
+	var ownerID string
+	err := s.db.QueryRow(`SELECT organizer_id FROM events WHERE id = $1`, eventID).Scan(&ownerID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return model.Announcement{}, ErrNotFound
+	}
+	if err != nil {
+		return model.Announcement{}, err
+	}
+	if ownerID != organizerID {
+		return model.Announcement{}, ErrForbidden
+	}
+
+	const q = `
+		UPDATE announcements
+		SET title = $1, content = $2, updated_at = NOW()
+		WHERE id = $3 AND event_id = $4
+		RETURNING id, event_id, title, content, published_at, created_at, updated_at
+	`
+
+	announcement, ok := scanAnnouncement(
+		s.db.QueryRow(
+			q,
+			strings.TrimSpace(title),
+			strings.TrimSpace(content),
+			announcementID,
+			eventID,
+		),
+	)
+	if !ok {
+		return model.Announcement{}, ErrNotFound
+	}
+
+	return announcement, nil
+}
+
+func (s *PostgresStore) DeleteAnnouncement(eventID string, announcementID string, organizerID string) error {
+	var ownerID string
+	err := s.db.QueryRow(`SELECT organizer_id FROM events WHERE id = $1`, eventID).Scan(&ownerID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrNotFound
+	}
+	if err != nil {
+		return err
+	}
+	if ownerID != organizerID {
+		return ErrForbidden
+	}
+
+	result, err := s.db.Exec(`DELETE FROM announcements WHERE id = $1 AND event_id = $2`, announcementID, eventID)
+	if err != nil {
+		return err
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return ErrNotFound
+	}
+
+	return nil
+}
+
 type eventScanner interface {
 	Scan(dest ...any) error
 }
@@ -616,6 +746,10 @@ type reservationScanner interface {
 }
 
 type reservationWithUserScanner interface {
+	Scan(dest ...any) error
+}
+
+type announcementScanner interface {
 	Scan(dest ...any) error
 }
 
@@ -747,6 +881,25 @@ func scanReservationWithUser(scanner reservationWithUserScanner) (model.Reservat
 	}
 
 	return item, true
+}
+
+func scanAnnouncement(scanner announcementScanner) (model.Announcement, bool) {
+	var announcement model.Announcement
+
+	err := scanner.Scan(
+		&announcement.ID,
+		&announcement.EventID,
+		&announcement.Title,
+		&announcement.Content,
+		&announcement.PublishedAt,
+		&announcement.CreatedAt,
+		&announcement.UpdatedAt,
+	)
+	if errors.Is(err, sql.ErrNoRows) || err != nil {
+		return model.Announcement{}, false
+	}
+
+	return announcement, true
 }
 
 func stringOrNil(value *string) any {

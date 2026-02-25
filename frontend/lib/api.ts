@@ -1,4 +1,4 @@
-import { EventCard, OrganizerReservation, RegisterFormData, Reservation, UserType } from "@/types";
+import { Announcement, EventCard, OrganizerReservation, RegisterFormData, Reservation, UserType } from "@/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000/api/v1";
 
@@ -52,6 +52,16 @@ type APIReservation = {
 type APIReservationWithUser = APIReservation & {
   user_display_name: string;
   user_email: string;
+};
+
+type APIAnnouncement = {
+  id: string;
+  event_id: string;
+  title: string;
+  content: string;
+  published_at: string;
+  created_at: string;
+  updated_at: string;
 };
 
 type LoginInput = {
@@ -293,6 +303,58 @@ export async function downloadEventReservationsCsv(
   return response.blob();
 }
 
+type AnnouncementInput = {
+  title: string;
+  content: string;
+};
+
+export async function listEventAnnouncements(eventId: string): Promise<Announcement[]> {
+  const response = await request<APIAnnouncement[]>(`/events/${eventId}/announcements`, {
+    method: "GET",
+  });
+
+  return response.map(toAnnouncement);
+}
+
+export async function createEventAnnouncement(
+  eventId: string,
+  accessToken: string,
+  input: AnnouncementInput,
+): Promise<Announcement> {
+  const response = await requestAuth<APIAnnouncement>(`/events/${eventId}/announcements`, accessToken, {
+    method: "POST",
+    body: JSON.stringify({
+      title: input.title,
+      content: input.content,
+    }),
+  });
+
+  return toAnnouncement(response);
+}
+
+export async function updateEventAnnouncement(
+  eventId: string,
+  announcementId: string,
+  accessToken: string,
+  input: AnnouncementInput,
+): Promise<Announcement> {
+  const response = await requestAuth<APIAnnouncement>(`/events/${eventId}/announcements/${announcementId}`, accessToken, {
+    method: "PATCH",
+    body: JSON.stringify({
+      title: input.title,
+      content: input.content,
+    }),
+  });
+
+  return toAnnouncement(response);
+}
+
+export async function deleteEventAnnouncement(eventId: string, announcementId: string, accessToken: string): Promise<void> {
+  await requestAuthWithoutJson(`/events/${eventId}/announcements/${announcementId}`, accessToken, {
+    method: "DELETE",
+  });
+}
+
 function toEventCard(event: APIEvent): EventCard {
   return {
     id: event.id,
@@ -325,6 +387,18 @@ function toOrganizerReservation(reservation: APIReservationWithUser): OrganizerR
     ...toReservation(reservation),
     userDisplayName: reservation.user_display_name,
     userEmail: reservation.user_email,
+  };
+}
+
+function toAnnouncement(announcement: APIAnnouncement): Announcement {
+  return {
+    id: announcement.id,
+    eventId: announcement.event_id,
+    title: announcement.title,
+    content: announcement.content,
+    publishedAt: announcement.published_at,
+    createdAt: announcement.created_at,
+    updatedAt: announcement.updated_at,
   };
 }
 

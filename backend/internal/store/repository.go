@@ -16,4 +16,8 @@ type Repository interface {
 	ListReservationsByUser(userID string, status string) []model.Reservation
 	ListReservationsByEvent(eventID string, organizerID string, status string, search string) ([]model.ReservationWithUser, error)
 	CancelReservation(userID string, reservationID string) (model.Reservation, error)
+	ListAnnouncementsByEvent(eventID string) ([]model.Announcement, error)
+	CreateAnnouncement(eventID string, organizerID string, title string, content string) (model.Announcement, error)
+	UpdateAnnouncement(eventID string, announcementID string, organizerID string, title string, content string) (model.Announcement, error)
+	DeleteAnnouncement(eventID string, announcementID string, organizerID string) error
 }

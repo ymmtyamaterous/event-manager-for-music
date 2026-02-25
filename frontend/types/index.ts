@@ -47,3 +47,13 @@ export type OrganizerReservation = Reservation & {
   userDisplayName: string;
   userEmail: string;
 };
+
+export type Announcement = {
+  id: string;
+  eventId: string;
+  title: string;
+  content: string;
+  publishedAt: string;
+  createdAt: string;
+  updatedAt: string;
+};

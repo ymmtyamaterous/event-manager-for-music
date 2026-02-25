@@ -79,6 +79,11 @@ type updateEventRequest struct {
 	Status        *string `json:"status"`
 }
 
+type announcementRequest struct {
+	Title   string `json:"title"`
+	Content string `json:"content"`
+}
+
 type refreshRequest struct {
 	RefreshToken string `json:"refresh_token"`
 }
@@ -133,6 +138,10 @@ func NewServer(cfg config.Config) *Server {
 	mux.HandleFunc("DELETE /api/v1/events/{id}", app.handleDeleteEvent)
 	mux.HandleFunc("POST /api/v1/events/{id}/reservations", app.handleCreateReservation)
 	mux.HandleFunc("GET /api/v1/events/{id}/reservations", app.handleListEventReservations)
+	mux.HandleFunc("GET /api/v1/events/{id}/announcements", app.handleListAnnouncements)
+	mux.HandleFunc("POST /api/v1/events/{id}/announcements", app.handleCreateAnnouncement)
+	mux.HandleFunc("PATCH /api/v1/events/{id}/announcements/{announcementId}", app.handleUpdateAnnouncement)
+	mux.HandleFunc("DELETE /api/v1/events/{id}/announcements/{announcementId}", app.handleDeleteAnnouncement)
 	mux.HandleFunc("GET /api/v1/reservations/me", app.handleListMyReservations)
 	mux.HandleFunc("PATCH /api/v1/reservations/{id}/cancel", app.handleCancelReservation)
 
@@ -609,6 +618,134 @@ func (a *app) handleCancelReservation(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, reservation)
+}
+
+func (a *app) handleListAnnouncements(w http.ResponseWriter, r *http.Request) {
+	eventID := r.PathValue("id")
+	announcements, err := a.store.ListAnnouncementsByEvent(eventID)
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrNotFound):
+			writeError(w, http.StatusNotFound, "イベントが存在しません")
+		default:
+			writeError(w, http.StatusInternalServerError, "サーバーエラー")
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusOK, announcements)
+}
+
+func (a *app) handleCreateAnnouncement(w http.ResponseWriter, r *http.Request) {
+	claims, err := a.parseAccessTokenFromHeader(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	if claims.UserType != model.UserTypeOrganizer {
+		writeError(w, http.StatusForbidden, "運営者ユーザーのみお知らせを作成できます")
+		return
+	}
+
+	var req announcementRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "リクエスト形式が不正です")
+		return
+	}
+
+	req.Title = strings.TrimSpace(req.Title)
+	req.Content = strings.TrimSpace(req.Content)
+	if req.Title == "" || req.Content == "" {
+		writeError(w, http.StatusBadRequest, "title と content は必須です")
+		return
+	}
+
+	eventID := r.PathValue("id")
+	announcement, err := a.store.CreateAnnouncement(eventID, claims.UserID, req.Title, req.Content)
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrForbidden):
+			writeError(w, http.StatusForbidden, "このイベントにお知らせを作成する権限がありません")
+		case errors.Is(err, store.ErrNotFound):
+			writeError(w, http.StatusNotFound, "イベントが存在しません")
+		default:
+			writeError(w, http.StatusInternalServerError, "サーバーエラー")
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, announcement)
+}
+
+func (a *app) handleUpdateAnnouncement(w http.ResponseWriter, r *http.Request) {
+	claims, err := a.parseAccessTokenFromHeader(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	if claims.UserType != model.UserTypeOrganizer {
+		writeError(w, http.StatusForbidden, "運営者ユーザーのみお知らせを更新できます")
+		return
+	}
+
+	var req announcementRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "リクエスト形式が不正です")
+		return
+	}
+
+	req.Title = strings.TrimSpace(req.Title)
+	req.Content = strings.TrimSpace(req.Content)
+	if req.Title == "" || req.Content == "" {
+		writeError(w, http.StatusBadRequest, "title と content は必須です")
+		return
+	}
+
+	eventID := r.PathValue("id")
+	announcementID := r.PathValue("announcementId")
+	announcement, err := a.store.UpdateAnnouncement(eventID, announcementID, claims.UserID, req.Title, req.Content)
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrForbidden):
+			writeError(w, http.StatusForbidden, "このイベントのお知らせを更新する権限がありません")
+		case errors.Is(err, store.ErrNotFound):
+			writeError(w, http.StatusNotFound, "イベントまたはお知らせが存在しません")
+		default:
+			writeError(w, http.StatusInternalServerError, "サーバーエラー")
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusOK, announcement)
+}
+
+func (a *app) handleDeleteAnnouncement(w http.ResponseWriter, r *http.Request) {
+	claims, err := a.parseAccessTokenFromHeader(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	if claims.UserType != model.UserTypeOrganizer {
+		writeError(w, http.StatusForbidden, "運営者ユーザーのみお知らせを削除できます")
+		return
+	}
+
+	eventID := r.PathValue("id")
+	announcementID := r.PathValue("announcementId")
+	err = a.store.DeleteAnnouncement(eventID, announcementID, claims.UserID)
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrForbidden):
+			writeError(w, http.StatusForbidden, "このイベントのお知らせを削除する権限がありません")
+		case errors.Is(err, store.ErrNotFound):
+			writeError(w, http.StatusNotFound, "イベントまたはお知らせが存在しません")
+		default:
+			writeError(w, http.StatusInternalServerError, "サーバーエラー")
+		}
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (a *app) parseAccessTokenFromHeader(r *http.Request) (*auth.Claims, error) {

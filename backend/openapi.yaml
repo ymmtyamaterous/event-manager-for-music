@@ -14,6 +14,7 @@ tags:
   - name: Auth
   - name: Users
   - name: Events
+  - name: Announcements
 paths:
   /auth/login:
     post:
@@ -300,6 +301,140 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "409":
           description: 重複または定員超過
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /events/{id}/announcements:
+    get:
+      tags: [Announcements]
+      summary: イベントのお知らせ一覧取得
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Announcement"
+        "404":
+          description: 見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      tags: [Announcements]
+      summary: お知らせ作成
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnnouncementRequest"
+      responses:
+        "201":
+          description: 作成成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Announcement"
+        "403":
+          description: 権限なし
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: 見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /events/{id}/announcements/{announcementId}:
+    patch:
+      tags: [Announcements]
+      summary: お知らせ更新
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: announcementId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnnouncementRequest"
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Announcement"
+        "403":
+          description: 権限なし
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: 見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      tags: [Announcements]
+      summary: お知らせ削除
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: announcementId
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: 削除成功
+        "403":
+          description: 権限なし
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: 見つからない
           content:
             application/json:
               schema:
@@ -592,3 +727,32 @@ components:
             user_email:
               type: string
               format: email
+    Announcement:
+      type: object
+      required: [id, event_id, title, content, published_at, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        event_id:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        published_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    AnnouncementRequest:
+      type: object
+      required: [title, content]
+      properties:
+        title:
+          type: string
+        content:
+          type: string
