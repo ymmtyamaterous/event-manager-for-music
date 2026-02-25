@@ -63,6 +63,72 @@ func (s *MemoryStore) ListPerformancesByEvent(eventID string) ([]model.Performan
 	return result, nil
 }
 
+func (s *MemoryStore) UpdatePerformance(eventID string, performanceID string, organizerID string, startTime *string, endTime *string, performanceOrder *int) (model.Performance, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	event, exists := s.eventsByID[eventID]
+	if !exists {
+		return model.Performance{}, ErrNotFound
+	}
+	if event.OrganizerID != organizerID {
+		return model.Performance{}, ErrForbidden
+	}
+
+	performance, exists := s.performancesByID[performanceID]
+	if !exists || performance.EventID != eventID {
+		return model.Performance{}, ErrNotFound
+	}
+
+	if startTime != nil {
+		v := strings.TrimSpace(*startTime)
+		if v == "" {
+			performance.StartTime = nil
+		} else {
+			performance.StartTime = &v
+		}
+	}
+
+	if endTime != nil {
+		v := strings.TrimSpace(*endTime)
+		if v == "" {
+			performance.EndTime = nil
+		} else {
+			performance.EndTime = &v
+		}
+	}
+
+	if performanceOrder != nil && *performanceOrder > 0 {
+		performance.PerformanceOrder = *performanceOrder
+	}
+
+	performance.UpdatedAt = nowInTokyo()
+	s.performancesByID[performanceID] = performance
+
+	return performance, nil
+}
+
+func (s *MemoryStore) DeletePerformance(eventID string, performanceID string, organizerID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	event, exists := s.eventsByID[eventID]
+	if !exists {
+		return ErrNotFound
+	}
+	if event.OrganizerID != organizerID {
+		return ErrForbidden
+	}
+
+	performance, exists := s.performancesByID[performanceID]
+	if !exists || performance.EventID != eventID {
+		return ErrNotFound
+	}
+
+	delete(s.performancesByID, performanceID)
+	return nil
+}
+
 func (s *MemoryStore) ListBandsByOwner(userID string) ([]model.Band, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

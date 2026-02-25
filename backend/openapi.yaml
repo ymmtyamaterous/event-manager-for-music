@@ -304,6 +304,79 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /events/{id}/performances/{performanceId}:
+    patch:
+      tags: [Events]
+      summary: イベント出演情報更新
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: performanceId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePerformanceRequest"
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Performance"
+        "403":
+          description: 権限なし
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: 見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      tags: [Events]
+      summary: イベント出演情報削除
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: performanceId
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: 削除成功
+        "403":
+          description: 権限なし
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: 見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     patch:
       tags: [Events]
       summary: イベント更新
@@ -1088,6 +1161,18 @@ components:
         rejection_reason:
           type: string
     ApproveEntryRequest:
+      type: object
+      properties:
+        start_time:
+          type: string
+          description: HH:MM
+        end_time:
+          type: string
+          description: HH:MM
+        performance_order:
+          type: integer
+          minimum: 1
+    UpdatePerformanceRequest:
       type: object
       properties:
         start_time:

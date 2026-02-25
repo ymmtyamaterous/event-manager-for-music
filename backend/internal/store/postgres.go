@@ -329,6 +329,100 @@ func (s *PostgresStore) ListPerformancesByEvent(eventID string) ([]model.Perform
 	return result, nil
 }
 
+func (s *PostgresStore) UpdatePerformance(eventID string, performanceID string, organizerID string, startTime *string, endTime *string, performanceOrder *int) (model.Performance, error) {
+	var ownerID string
+	err := s.db.QueryRow(`SELECT organizer_id FROM events WHERE id = $1`, eventID).Scan(&ownerID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return model.Performance{}, ErrNotFound
+	}
+	if err != nil {
+		return model.Performance{}, err
+	}
+	if ownerID != organizerID {
+		return model.Performance{}, ErrForbidden
+	}
+
+	var startTimeArg any
+	if startTime != nil {
+		trimmed := strings.TrimSpace(*startTime)
+		if trimmed == "" {
+			startTimeArg = nil
+		} else {
+			startTimeArg = trimmed
+		}
+	} else {
+		startTimeArg = nil
+	}
+
+	var endTimeArg any
+	if endTime != nil {
+		trimmed := strings.TrimSpace(*endTime)
+		if trimmed == "" {
+			endTimeArg = nil
+		} else {
+			endTimeArg = trimmed
+		}
+	} else {
+		endTimeArg = nil
+	}
+
+	const q = `
+		UPDATE performances
+		SET
+			start_time = CASE WHEN $1::text IS NULL THEN start_time ELSE $1::time END,
+			end_time = CASE WHEN $2::text IS NULL THEN end_time ELSE $2::time END,
+			performance_order = COALESCE($3, performance_order),
+			updated_at = NOW()
+		WHERE id = $4 AND event_id = $5
+		RETURNING
+			id,
+			event_id,
+			band_id,
+			(SELECT name FROM bands WHERE bands.id = performances.band_id) AS band_name,
+			start_time,
+			end_time,
+			performance_order,
+			created_at,
+			updated_at
+	`
+
+	performance, ok := scanPerformance(s.db.QueryRow(q, startTimeArg, endTimeArg, performanceOrder, performanceID, eventID))
+	if !ok {
+		return model.Performance{}, ErrNotFound
+	}
+
+	return performance, nil
+}
+
+func (s *PostgresStore) DeletePerformance(eventID string, performanceID string, organizerID string) error {
+	var ownerID string
+	err := s.db.QueryRow(`SELECT organizer_id FROM events WHERE id = $1`, eventID).Scan(&ownerID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrNotFound
+	}
+	if err != nil {
+		return err
+	}
+	if ownerID != organizerID {
+		return ErrForbidden
+	}
+
+	result, err := s.db.Exec(`DELETE FROM performances WHERE id = $1 AND event_id = $2`, performanceID, eventID)
+	if err != nil {
+		return err
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return ErrNotFound
+	}
+
+	return nil
+}
+
 func (s *PostgresStore) ListEvents(status string, search string, organizerID string) []model.Event {
 	base := `
 		SELECT id, organizer_id, title, description, venue_name, venue_address, event_date, doors_open_time, start_time, end_time, ticket_price, capacity, status, created_at, updated_at

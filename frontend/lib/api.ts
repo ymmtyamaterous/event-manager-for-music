@@ -527,6 +527,36 @@ export async function listEventPerformances(eventId: string): Promise<EventPerfo
   return response.map(toEventPerformance);
 }
 
+type UpdatePerformanceInput = {
+  startTime?: string;
+  endTime?: string;
+  performanceOrder?: number;
+};
+
+export async function updateEventPerformance(
+  eventId: string,
+  performanceId: string,
+  accessToken: string,
+  input: UpdatePerformanceInput,
+): Promise<EventPerformance> {
+  const response = await requestAuth<APIPerformance>(`/events/${eventId}/performances/${performanceId}`, accessToken, {
+    method: "PATCH",
+    body: JSON.stringify({
+      start_time: input.startTime,
+      end_time: input.endTime,
+      performance_order: input.performanceOrder,
+    }),
+  });
+
+  return toEventPerformance(response);
+}
+
+export async function deleteEventPerformance(eventId: string, performanceId: string, accessToken: string): Promise<void> {
+  await requestAuthWithoutJson(`/events/${eventId}/performances/${performanceId}`, accessToken, {
+    method: "DELETE",
+  });
+}
+
 function toEventCard(event: APIEvent): EventCard {
   return {
     id: event.id,

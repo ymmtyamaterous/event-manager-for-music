@@ -100,6 +100,12 @@ type approveEntryRequest struct {
 	PerformanceOrder *int    `json:"performance_order"`
 }
 
+type updatePerformanceRequest struct {
+	StartTime        *string `json:"start_time"`
+	EndTime          *string `json:"end_time"`
+	PerformanceOrder *int    `json:"performance_order"`
+}
+
 type createBandRequest struct {
 	Name        string `json:"name"`
 	Genre       string `json:"genre"`
@@ -160,6 +166,8 @@ func NewServer(cfg config.Config) *Server {
 	mux.HandleFunc("POST /api/v1/events", app.handleCreateEvent)
 	mux.HandleFunc("GET /api/v1/events/{id}", app.handleGetEvent)
 	mux.HandleFunc("GET /api/v1/events/{id}/performances", app.handleListEventPerformances)
+	mux.HandleFunc("PATCH /api/v1/events/{id}/performances/{performanceId}", app.handleUpdatePerformance)
+	mux.HandleFunc("DELETE /api/v1/events/{id}/performances/{performanceId}", app.handleDeletePerformance)
 	mux.HandleFunc("PATCH /api/v1/events/{id}", app.handleUpdateEvent)
 	mux.HandleFunc("DELETE /api/v1/events/{id}", app.handleDeleteEvent)
 	mux.HandleFunc("POST /api/v1/events/{id}/reservations", app.handleCreateReservation)
@@ -563,6 +571,104 @@ func (a *app) handleListEventPerformances(w http.ResponseWriter, r *http.Request
 	}
 
 	writeJSON(w, http.StatusOK, items)
+}
+
+func (a *app) handleUpdatePerformance(w http.ResponseWriter, r *http.Request) {
+	claims, err := a.parseAccessTokenFromHeader(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	if claims.UserType != model.UserTypeOrganizer {
+		writeError(w, http.StatusForbidden, "運営者ユーザーのみ出演情報を更新できます")
+		return
+	}
+
+	var req updatePerformanceRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "リクエスト形式が不正です")
+		return
+	}
+
+	if req.StartTime != nil {
+		v := strings.TrimSpace(*req.StartTime)
+		if v == "" {
+			req.StartTime = nil
+		} else {
+			if _, err := time.Parse("15:04", v); err != nil {
+				writeError(w, http.StatusBadRequest, "start_time は HH:MM 形式で指定してください")
+				return
+			}
+			req.StartTime = &v
+		}
+	}
+
+	if req.EndTime != nil {
+		v := strings.TrimSpace(*req.EndTime)
+		if v == "" {
+			req.EndTime = nil
+		} else {
+			if _, err := time.Parse("15:04", v); err != nil {
+				writeError(w, http.StatusBadRequest, "end_time は HH:MM 形式で指定してください")
+				return
+			}
+			req.EndTime = &v
+		}
+	}
+
+	if req.PerformanceOrder != nil && *req.PerformanceOrder <= 0 {
+		writeError(w, http.StatusBadRequest, "performance_order は1以上を指定してください")
+		return
+	}
+
+	performance, err := a.store.UpdatePerformance(
+		r.PathValue("id"),
+		r.PathValue("performanceId"),
+		claims.UserID,
+		req.StartTime,
+		req.EndTime,
+		req.PerformanceOrder,
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrForbidden):
+			writeError(w, http.StatusForbidden, "このイベントの出演情報を更新する権限がありません")
+		case errors.Is(err, store.ErrNotFound):
+			writeError(w, http.StatusNotFound, "イベントまたは出演情報が存在しません")
+		default:
+			writeError(w, http.StatusInternalServerError, "サーバーエラー")
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusOK, performance)
+}
+
+func (a *app) handleDeletePerformance(w http.ResponseWriter, r *http.Request) {
+	claims, err := a.parseAccessTokenFromHeader(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	if claims.UserType != model.UserTypeOrganizer {
+		writeError(w, http.StatusForbidden, "運営者ユーザーのみ出演情報を削除できます")
+		return
+	}
+
+	err = a.store.DeletePerformance(r.PathValue("id"), r.PathValue("performanceId"), claims.UserID)
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrForbidden):
+			writeError(w, http.StatusForbidden, "このイベントの出演情報を削除する権限がありません")
+		case errors.Is(err, store.ErrNotFound):
+			writeError(w, http.StatusNotFound, "イベントまたは出演情報が存在しません")
+		default:
+			writeError(w, http.StatusInternalServerError, "サーバーエラー")
+		}
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (a *app) handleUpdateEvent(w http.ResponseWriter, r *http.Request) {
