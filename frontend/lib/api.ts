@@ -410,9 +410,20 @@ export async function listEventEntries(
   return response.map(toEventEntry);
 }
 
-export async function approveEntry(entryId: string, accessToken: string): Promise<EventEntry> {
+type ApproveEntryInput = {
+  startTime?: string;
+  endTime?: string;
+  performanceOrder?: number;
+};
+
+export async function approveEntry(entryId: string, accessToken: string, input?: ApproveEntryInput): Promise<EventEntry> {
   const response = await requestAuth<APIEntryWithBand>(`/entries/${entryId}/approve`, accessToken, {
     method: "PATCH",
+    body: JSON.stringify({
+      start_time: input?.startTime,
+      end_time: input?.endTime,
+      performance_order: input?.performanceOrder,
+    }),
   });
 
   return toEventEntry(response);

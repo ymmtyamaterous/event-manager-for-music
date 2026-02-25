@@ -617,6 +617,12 @@ paths:
           required: true
           schema:
             type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApproveEntryRequest"
       responses:
         "200":
           description: 成功
@@ -1056,6 +1062,18 @@ components:
       properties:
         rejection_reason:
           type: string
+    ApproveEntryRequest:
+      type: object
+      properties:
+        start_time:
+          type: string
+          description: HH:MM
+        end_time:
+          type: string
+          description: HH:MM
+        performance_order:
+          type: integer
+          minimum: 1
     Band:
       type: object
       required: [id, owner_id, name, created_at, updated_at]

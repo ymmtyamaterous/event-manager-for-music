@@ -999,7 +999,7 @@ func (s *PostgresStore) CreateEntry(eventID string, userID string, bandID string
 	return entry, nil
 }
 
-func (s *PostgresStore) ApproveEntry(entryID string, organizerID string) (model.Entry, error) {
+func (s *PostgresStore) ApproveEntry(entryID string, organizerID string, startTime *string, endTime *string, performanceOrder *int) (model.Entry, error) {
 	tx, err := s.db.Begin()
 	if err != nil {
 		return model.Entry{}, err
@@ -1037,15 +1037,36 @@ func (s *PostgresStore) ApproveEntry(entryID string, organizerID string) (model.
 		return model.Entry{}, ErrNotFound
 	}
 
+	order := 0
+	if performanceOrder != nil {
+		order = *performanceOrder
+	} else {
+		if err := tx.QueryRow(`SELECT COALESCE(MAX(performance_order), 0) + 1 FROM performances WHERE event_id = $1`, entry.EventID).Scan(&order); err != nil {
+			return model.Entry{}, err
+		}
+	}
+
+	var startTimeArg any
+	if startTime != nil && strings.TrimSpace(*startTime) != "" {
+		startTimeArg = strings.TrimSpace(*startTime)
+	} else {
+		startTimeArg = nil
+	}
+
+	var endTimeArg any
+	if endTime != nil && strings.TrimSpace(*endTime) != "" {
+		endTimeArg = strings.TrimSpace(*endTime)
+	} else {
+		endTimeArg = nil
+	}
+
 	const perfQ = `
-		INSERT INTO performances (event_id, band_id, performance_order)
-		SELECT $1, $2, COALESCE(MAX(performance_order), 0) + 1
-		FROM performances
-		WHERE event_id = $1
+		INSERT INTO performances (event_id, band_id, start_time, end_time, performance_order)
+		VALUES ($1, $2, $3::time, $4::time, $5)
 		ON CONFLICT (event_id, band_id) DO NOTHING
 	`
 
-	if _, err := tx.Exec(perfQ, entry.EventID, entry.BandID); err != nil {
+	if _, err := tx.Exec(perfQ, entry.EventID, entry.BandID, startTimeArg, endTimeArg, order); err != nil {
 		return model.Entry{}, err
 	}
 

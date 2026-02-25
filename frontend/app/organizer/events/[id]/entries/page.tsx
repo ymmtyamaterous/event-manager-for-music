@@ -104,10 +104,50 @@ export default function OrganizerEntriesPage({ params }: OrganizerEntriesPagePro
       return;
     }
 
+    const startInput = window.prompt("開始時刻を入力してください（任意 / HH:MM）", "");
+    if (startInput === null) {
+      return;
+    }
+    const endInput = window.prompt("終了時刻を入力してください（任意 / HH:MM）", "");
+    if (endInput === null) {
+      return;
+    }
+    const orderInput = window.prompt("出演順を入力してください（任意 / 1以上の整数）", "");
+    if (orderInput === null) {
+      return;
+    }
+
+    const start = startInput.trim();
+    const end = endInput.trim();
+    const orderRaw = orderInput.trim();
+
+    if (start && !/^\d{2}:\d{2}$/.test(start)) {
+      setError("開始時刻は HH:MM 形式で入力してください");
+      return;
+    }
+    if (end && !/^\d{2}:\d{2}$/.test(end)) {
+      setError("終了時刻は HH:MM 形式で入力してください");
+      return;
+    }
+
+    let performanceOrder: number | undefined;
+    if (orderRaw) {
+      const parsed = Number(orderRaw);
+      if (!Number.isInteger(parsed) || parsed <= 0) {
+        setError("出演順は1以上の整数で入力してください");
+        return;
+      }
+      performanceOrder = parsed;
+    }
+
     setError("");
     setProcessingId(entryId);
     try {
-      await approveEntry(entryId, accessToken);
+      await approveEntry(entryId, accessToken, {
+        startTime: start || undefined,
+        endTime: end || undefined,
+        performanceOrder,
+      });
       await reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : "承認に失敗しました");

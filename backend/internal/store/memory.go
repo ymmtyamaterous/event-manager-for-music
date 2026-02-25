@@ -686,9 +686,13 @@ func (s *MemoryStore) CreateEntry(eventID string, userID string, bandID string, 
 	return entry, nil
 }
 
-func (s *MemoryStore) ApproveEntry(entryID string, organizerID string) (model.Entry, error) {
+func (s *MemoryStore) ApproveEntry(entryID string, organizerID string, startTime *string, endTime *string, performanceOrder *int) (model.Entry, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	_ = startTime
+	_ = endTime
+	_ = performanceOrder
 
 	entry, exists := s.entriesByID[entryID]
 	if !exists {

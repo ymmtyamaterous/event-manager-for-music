@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strings"
@@ -91,6 +92,12 @@ type createEntryRequest struct {
 
 type rejectEntryRequest struct {
 	RejectionReason string `json:"rejection_reason"`
+}
+
+type approveEntryRequest struct {
+	StartTime        *string `json:"start_time"`
+	EndTime          *string `json:"end_time"`
+	PerformanceOrder *int    `json:"performance_order"`
 }
 
 type createBandRequest struct {
@@ -939,7 +946,46 @@ func (a *app) handleApproveEntry(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	entry, err := a.store.ApproveEntry(r.PathValue("id"), claims.UserID)
+	var req approveEntryRequest
+	if r.Body != nil {
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil && !errors.Is(err, io.EOF) {
+			writeError(w, http.StatusBadRequest, "リクエスト形式が不正です")
+			return
+		}
+	}
+
+	if req.StartTime != nil {
+		v := strings.TrimSpace(*req.StartTime)
+		if v == "" {
+			req.StartTime = nil
+		} else {
+			if _, err := time.Parse("15:04", v); err != nil {
+				writeError(w, http.StatusBadRequest, "start_time は HH:MM 形式で指定してください")
+				return
+			}
+			req.StartTime = &v
+		}
+	}
+
+	if req.EndTime != nil {
+		v := strings.TrimSpace(*req.EndTime)
+		if v == "" {
+			req.EndTime = nil
+		} else {
+			if _, err := time.Parse("15:04", v); err != nil {
+				writeError(w, http.StatusBadRequest, "end_time は HH:MM 形式で指定してください")
+				return
+			}
+			req.EndTime = &v
+		}
+	}
+
+	if req.PerformanceOrder != nil && *req.PerformanceOrder <= 0 {
+		writeError(w, http.StatusBadRequest, "performance_order は1以上を指定してください")
+		return
+	}
+
+	entry, err := a.store.ApproveEntry(r.PathValue("id"), claims.UserID, req.StartTime, req.EndTime, req.PerformanceOrder)
 	if err != nil {
 		switch {
 		case errors.Is(err, store.ErrForbidden):
