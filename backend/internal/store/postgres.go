@@ -281,6 +281,54 @@ func (s *PostgresStore) CreateBand(userID string, name string, genre string, des
 	return band, nil
 }
 
+func (s *PostgresStore) ListPerformancesByEvent(eventID string) ([]model.Performance, error) {
+	var exists bool
+	err := s.db.QueryRow(`SELECT EXISTS(SELECT 1 FROM events WHERE id = $1)`, eventID).Scan(&exists)
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, ErrNotFound
+	}
+
+	const q = `
+		SELECT
+			p.id,
+			p.event_id,
+			p.band_id,
+			b.name,
+			p.start_time,
+			p.end_time,
+			p.performance_order,
+			p.created_at,
+			p.updated_at
+		FROM performances p
+		INNER JOIN bands b ON b.id = p.band_id
+		WHERE p.event_id = $1
+		ORDER BY p.performance_order ASC, p.created_at ASC
+	`
+
+	rows, err := s.db.Query(q, eventID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result := make([]model.Performance, 0)
+	for rows.Next() {
+		performance, ok := scanPerformance(rows)
+		if ok {
+			result = append(result, performance)
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
 func (s *PostgresStore) ListEvents(status string, search string, organizerID string) []model.Event {
 	base := `
 		SELECT id, organizer_id, title, description, venue_name, venue_address, event_date, doors_open_time, start_time, end_time, ticket_price, capacity, status, created_at, updated_at
@@ -1150,6 +1198,10 @@ type bandScanner interface {
 	Scan(dest ...any) error
 }
 
+type performanceScanner interface {
+	Scan(dest ...any) error
+}
+
 func scanEvent(scanner eventScanner) (model.Event, bool) {
 	var event model.Event
 	var description sql.NullString
@@ -1434,6 +1486,38 @@ func scanBand(scanner bandScanner) (model.Band, bool) {
 	}
 
 	return band, true
+}
+
+func scanPerformance(scanner performanceScanner) (model.Performance, bool) {
+	var performance model.Performance
+	var startTime sql.NullTime
+	var endTime sql.NullTime
+
+	err := scanner.Scan(
+		&performance.ID,
+		&performance.EventID,
+		&performance.BandID,
+		&performance.BandName,
+		&startTime,
+		&endTime,
+		&performance.PerformanceOrder,
+		&performance.CreatedAt,
+		&performance.UpdatedAt,
+	)
+	if errors.Is(err, sql.ErrNoRows) || err != nil {
+		return model.Performance{}, false
+	}
+
+	if startTime.Valid {
+		v := startTime.Time.Format("15:04")
+		performance.StartTime = &v
+	}
+	if endTime.Valid {
+		v := endTime.Time.Format("15:04")
+		performance.EndTime = &v
+	}
+
+	return performance, true
 }
 
 func stringOrNil(value *string) any {

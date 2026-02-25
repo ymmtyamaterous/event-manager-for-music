@@ -9,6 +9,7 @@ type Repository interface {
 	UpdateUser(userID string, firstName string, lastName string, displayName string, email string) (model.User, error)
 	ListBandsByOwner(userID string) ([]model.Band, error)
 	CreateBand(userID string, name string, genre string, description string) (model.Band, error)
+	ListPerformancesByEvent(eventID string) ([]model.Performance, error)
 	ListEvents(status string, search string, organizerID string) []model.Event
 	GetEventByID(id string) (model.Event, bool)
 	CreateEvent(input model.CreateEventInput) (model.Event, error)

@@ -17,6 +17,7 @@ type MemoryStore struct {
 	userByEmail       map[string]string
 	bandsByID         map[string]model.Band
 	eventsByID        map[string]model.Event
+	performancesByID  map[string]model.Performance
 	reservationsByID  map[string]model.Reservation
 	announcementsByID map[string]model.Announcement
 	entriesByID       map[string]model.Entry
@@ -28,12 +29,38 @@ func NewMemoryStore() *MemoryStore {
 		userByEmail:       map[string]string{},
 		bandsByID:         map[string]model.Band{},
 		eventsByID:        map[string]model.Event{},
+		performancesByID:  map[string]model.Performance{},
 		reservationsByID:  map[string]model.Reservation{},
 		announcementsByID: map[string]model.Announcement{},
 		entriesByID:       map[string]model.Entry{},
 	}
 	s.seedEvents()
 	return s
+}
+
+func (s *MemoryStore) ListPerformancesByEvent(eventID string) ([]model.Performance, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if _, exists := s.eventsByID[eventID]; !exists {
+		return nil, ErrNotFound
+	}
+
+	result := make([]model.Performance, 0)
+	for _, performance := range s.performancesByID {
+		if performance.EventID == eventID {
+			result = append(result, performance)
+		}
+	}
+
+	sort.Slice(result, func(i, j int) bool {
+		if result[i].PerformanceOrder == result[j].PerformanceOrder {
+			return result[i].CreatedAt.Before(result[j].CreatedAt)
+		}
+		return result[i].PerformanceOrder < result[j].PerformanceOrder
+	})
+
+	return result, nil
 }
 
 func (s *MemoryStore) ListBandsByOwner(userID string) ([]model.Band, error) {
@@ -690,10 +717,6 @@ func (s *MemoryStore) ApproveEntry(entryID string, organizerID string, startTime
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	_ = startTime
-	_ = endTime
-	_ = performanceOrder
-
 	entry, exists := s.entriesByID[entryID]
 	if !exists {
 		return model.Entry{}, ErrNotFound
@@ -709,9 +732,59 @@ func (s *MemoryStore) ApproveEntry(entryID string, organizerID string, startTime
 
 	entry.Status = model.EntryStatusApproved
 	entry.RejectionReason = nil
-	entry.UpdatedAt = nowInTokyo()
+	now := nowInTokyo()
+	entry.UpdatedAt = now
 
 	s.entriesByID[entry.ID] = entry
+
+	for _, performance := range s.performancesByID {
+		if performance.EventID == entry.EventID && performance.BandID == entry.BandID {
+			return entry, nil
+		}
+	}
+
+	order := 1
+	if performanceOrder != nil && *performanceOrder > 0 {
+		order = *performanceOrder
+	} else {
+		maxOrder := 0
+		for _, performance := range s.performancesByID {
+			if performance.EventID == entry.EventID && performance.PerformanceOrder > maxOrder {
+				maxOrder = performance.PerformanceOrder
+			}
+		}
+		order = maxOrder + 1
+	}
+
+	var normalizedStartTime *string
+	if startTime != nil {
+		v := strings.TrimSpace(*startTime)
+		if v != "" {
+			normalizedStartTime = &v
+		}
+	}
+
+	var normalizedEndTime *string
+	if endTime != nil {
+		v := strings.TrimSpace(*endTime)
+		if v != "" {
+			normalizedEndTime = &v
+		}
+	}
+
+	performance := model.Performance{
+		ID:               uuid.NewString(),
+		EventID:          entry.EventID,
+		BandID:           entry.BandID,
+		BandName:         s.bandNameByID(entry.BandID),
+		StartTime:        normalizedStartTime,
+		EndTime:          normalizedEndTime,
+		PerformanceOrder: order,
+		CreatedAt:        now,
+		UpdatedAt:        now,
+	}
+
+	s.performancesByID[performance.ID] = performance
 	return entry, nil
 }
 

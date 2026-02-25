@@ -1,4 +1,15 @@
-import { Announcement, Band, BandEntry, EventCard, EventEntry, OrganizerReservation, RegisterFormData, Reservation, UserType } from "@/types";
+import {
+  Announcement,
+  Band,
+  BandEntry,
+  EventCard,
+  EventEntry,
+  EventPerformance,
+  OrganizerReservation,
+  RegisterFormData,
+  Reservation,
+  UserType,
+} from "@/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000/api/v1";
 
@@ -98,6 +109,18 @@ type APIEntryWithEvent = {
   event_title: string;
   event_date: string;
   venue_name: string;
+};
+
+type APIPerformance = {
+  id: string;
+  event_id: string;
+  band_id: string;
+  band_name: string;
+  start_time: string | null;
+  end_time: string | null;
+  performance_order: number;
+  created_at: string;
+  updated_at: string;
 };
 
 type LoginInput = {
@@ -496,6 +519,14 @@ export async function listBandEntries(
   return response.map(toBandEntry);
 }
 
+export async function listEventPerformances(eventId: string): Promise<EventPerformance[]> {
+  const response = await request<APIPerformance[]>(`/events/${eventId}/performances`, {
+    method: "GET",
+  });
+
+  return response.map(toEventPerformance);
+}
+
 function toEventCard(event: APIEvent): EventCard {
   return {
     id: event.id,
@@ -582,6 +613,20 @@ function toBandEntry(entry: APIEntryWithEvent): BandEntry {
     eventTitle: entry.event_title,
     eventDate: entry.event_date,
     venueName: entry.venue_name,
+  };
+}
+
+function toEventPerformance(performance: APIPerformance): EventPerformance {
+  return {
+    id: performance.id,
+    eventId: performance.event_id,
+    bandId: performance.band_id,
+    bandName: performance.band_name,
+    startTime: performance.start_time,
+    endTime: performance.end_time,
+    performanceOrder: performance.performance_order,
+    createdAt: performance.created_at,
+    updatedAt: performance.updated_at,
   };
 }
 

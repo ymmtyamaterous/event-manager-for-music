@@ -95,3 +95,15 @@ export type BandEntry = {
   eventDate: string;
   venueName: string;
 };
+
+export type EventPerformance = {
+  id: string;
+  eventId: string;
+  bandId: string;
+  bandName: string;
+  startTime: string | null;
+  endTime: string | null;
+  performanceOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};

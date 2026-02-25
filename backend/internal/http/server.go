@@ -159,6 +159,7 @@ func NewServer(cfg config.Config) *Server {
 	mux.HandleFunc("GET /api/v1/events", app.handleListEvents)
 	mux.HandleFunc("POST /api/v1/events", app.handleCreateEvent)
 	mux.HandleFunc("GET /api/v1/events/{id}", app.handleGetEvent)
+	mux.HandleFunc("GET /api/v1/events/{id}/performances", app.handleListEventPerformances)
 	mux.HandleFunc("PATCH /api/v1/events/{id}", app.handleUpdateEvent)
 	mux.HandleFunc("DELETE /api/v1/events/{id}", app.handleDeleteEvent)
 	mux.HandleFunc("POST /api/v1/events/{id}/reservations", app.handleCreateReservation)
@@ -547,6 +548,21 @@ func (a *app) handleGetEvent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, event)
+}
+
+func (a *app) handleListEventPerformances(w http.ResponseWriter, r *http.Request) {
+	items, err := a.store.ListPerformancesByEvent(r.PathValue("id"))
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrNotFound):
+			writeError(w, http.StatusNotFound, "イベントが存在しません")
+		default:
+			writeError(w, http.StatusInternalServerError, "サーバーエラー")
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusOK, items)
 }
 
 func (a *app) handleUpdateEvent(w http.ResponseWriter, r *http.Request) {

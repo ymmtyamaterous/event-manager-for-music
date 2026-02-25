@@ -156,3 +156,15 @@ type EntryWithEvent struct {
 	EventDate  string `json:"event_date"`
 	VenueName  string `json:"venue_name"`
 }
+
+type Performance struct {
+	ID               string    `json:"id"`
+	EventID          string    `json:"event_id"`
+	BandID           string    `json:"band_id"`
+	BandName         string    `json:"band_name"`
+	StartTime        *string   `json:"start_time"`
+	EndTime          *string   `json:"end_time"`
+	PerformanceOrder int       `json:"performance_order"`
+	CreatedAt        time.Time `json:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at"`
+}

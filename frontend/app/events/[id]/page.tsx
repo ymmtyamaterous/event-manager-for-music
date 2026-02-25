@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { featuredEvents } from "@/lib/mock-data";
-import { getEvent, listEventAnnouncements } from "@/lib/api";
-import { Announcement, EventCard } from "@/types";
+import { getEvent, listEventAnnouncements, listEventPerformances } from "@/lib/api";
+import { Announcement, EventCard, EventPerformance } from "@/types";
 import { ReservationPanel } from "@/components/events/ReservationPanel";
 
 type EventDetailPageProps = {
@@ -13,6 +13,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
   const { id } = await params;
   let event: EventCard | undefined;
   let announcements: Announcement[] = [];
+  let performances: EventPerformance[] = [];
 
   try {
     event = await getEvent(id);
@@ -28,6 +29,12 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
     announcements = await listEventAnnouncements(event.id);
   } catch {
     announcements = [];
+  }
+
+  try {
+    performances = await listEventPerformances(event.id);
+  } catch {
+    performances = [];
   }
 
   return (
@@ -46,7 +53,24 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
 
         <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-lg font-bold text-gray-900">タイムテーブル</h2>
-          <p className="mt-2 text-sm text-gray-600">初期実装段階のため、今後 API 連携で表示します。</p>
+          {performances.length === 0 ? (
+            <p className="mt-2 text-sm text-gray-600">出演情報はまだ登録されていません。</p>
+          ) : (
+            <div className="mt-3 space-y-2">
+              {performances.map((item) => (
+                <div key={item.id} className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {item.performanceOrder}. {item.bandName}
+                    </p>
+                  </div>
+                  <p className="text-xs text-gray-600">
+                    {item.startTime ?? "--:--"} - {item.endTime ?? "--:--"}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
