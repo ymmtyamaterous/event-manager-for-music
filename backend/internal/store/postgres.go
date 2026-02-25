@@ -149,6 +149,60 @@ func (s *PostgresStore) GetUserByID(id string) (model.User, bool) {
 	return user, true
 }
 
+func (s *PostgresStore) UpdateUser(userID string, firstName string, lastName string, displayName string, email string) (model.User, error) {
+	const q = `
+		UPDATE users
+		SET
+			first_name = CASE WHEN $2 <> '' THEN $2 ELSE first_name END,
+			last_name = CASE WHEN $3 <> '' THEN $3 ELSE last_name END,
+			display_name = CASE WHEN $4 <> '' THEN $4 ELSE display_name END,
+			email = CASE WHEN $5 <> '' THEN $5 ELSE email END,
+			updated_at = NOW()
+		WHERE id = $1
+		RETURNING id, email, password_hash, first_name, last_name, display_name, user_type, profile_image_path, created_at, updated_at
+	`
+
+	var user model.User
+	var userType string
+	var profileImagePath sql.NullString
+	err := s.db.QueryRow(
+		q,
+		userID,
+		strings.TrimSpace(firstName),
+		strings.TrimSpace(lastName),
+		strings.TrimSpace(displayName),
+		strings.ToLower(strings.TrimSpace(email)),
+	).Scan(
+		&user.ID,
+		&user.Email,
+		&user.PasswordHash,
+		&user.FirstName,
+		&user.LastName,
+		&user.DisplayName,
+		&userType,
+		&profileImagePath,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return model.User{}, ErrNotFound
+	}
+	if err != nil {
+		if isUniqueViolation(err) {
+			return model.User{}, ErrConflict
+		}
+		return model.User{}, err
+	}
+
+	user.UserType = model.UserType(userType)
+	if profileImagePath.Valid {
+		v := profileImagePath.String
+		user.ProfileImagePath = &v
+	}
+
+	return user, nil
+}
+
 func (s *PostgresStore) ListEvents(status string, search string) []model.Event {
 	base := `
 		SELECT id, organizer_id, title, description, venue_name, venue_address, event_date, doors_open_time, start_time, end_time, ticket_price, capacity, status, created_at, updated_at

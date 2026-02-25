@@ -71,6 +71,44 @@ func (s *MemoryStore) GetUserByID(id string) (model.User, bool) {
 	return u, ok
 }
 
+func (s *MemoryStore) UpdateUser(userID string, firstName string, lastName string, displayName string, email string) (model.User, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	user, exists := s.usersByID[userID]
+	if !exists {
+		return model.User{}, ErrNotFound
+	}
+
+	newEmail := strings.ToLower(strings.TrimSpace(email))
+	if newEmail == "" {
+		newEmail = user.Email
+	}
+
+	if ownerID, exists := s.userByEmail[newEmail]; exists && ownerID != userID {
+		return model.User{}, ErrConflict
+	}
+
+	delete(s.userByEmail, strings.ToLower(strings.TrimSpace(user.Email)))
+
+	if strings.TrimSpace(firstName) != "" {
+		user.FirstName = strings.TrimSpace(firstName)
+	}
+	if strings.TrimSpace(lastName) != "" {
+		user.LastName = strings.TrimSpace(lastName)
+	}
+	if strings.TrimSpace(displayName) != "" {
+		user.DisplayName = strings.TrimSpace(displayName)
+	}
+	user.Email = newEmail
+	user.UpdatedAt = nowInTokyo()
+
+	s.usersByID[userID] = user
+	s.userByEmail[newEmail] = userID
+
+	return user, nil
+}
+
 func (s *MemoryStore) ListEvents(status string, search string) []model.Event {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

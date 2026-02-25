@@ -99,6 +99,30 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/User"
+    patch:
+      tags: [Users]
+      summary: ユーザー情報更新
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMeRequest"
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "409":
+          description: メール重複
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /events:
     get:
       tags: [Events]
@@ -320,6 +344,18 @@ components:
           type: string
         user:
           $ref: "#/components/schemas/User"
+    UpdateMeRequest:
+      type: object
+      properties:
+        first_name:
+          type: string
+        last_name:
+          type: string
+        display_name:
+          type: string
+        email:
+          type: string
+          format: email
     Event:
       type: object
       required:

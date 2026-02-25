@@ -12,6 +12,12 @@ export function Header() {
           <Link href="/events" className="hover:text-blue-700 transition-colors">
             イベント一覧
           </Link>
+          <Link href="/audience" className="hover:text-blue-700 transition-colors">
+            マイページ
+          </Link>
+          <Link href="/profile" className="hover:text-blue-700 transition-colors">
+            プロフィール
+          </Link>
           <Link href="/login" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
             ログイン
           </Link>

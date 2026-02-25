@@ -41,6 +41,13 @@ type registerRequest struct {
 	UserType    string `json:"user_type"`
 }
 
+type updateMeRequest struct {
+	FirstName   string `json:"first_name"`
+	LastName    string `json:"last_name"`
+	DisplayName string `json:"display_name"`
+	Email       string `json:"email"`
+}
+
 type refreshRequest struct {
 	RefreshToken string `json:"refresh_token"`
 }
@@ -87,6 +94,7 @@ func NewServer(cfg config.Config) *Server {
 	mux.HandleFunc("POST /api/v1/auth/login", app.handleLogin)
 	mux.HandleFunc("POST /api/v1/auth/refresh", app.handleRefresh)
 	mux.HandleFunc("GET /api/v1/users/me", app.handleGetMe)
+	mux.HandleFunc("PATCH /api/v1/users/me", app.handlePatchMe)
 	mux.HandleFunc("GET /api/v1/events", app.handleListEvents)
 	mux.HandleFunc("GET /api/v1/events/{id}", app.handleGetEvent)
 	mux.HandleFunc("POST /api/v1/events/{id}/reservations", app.handleCreateReservation)
@@ -248,6 +256,40 @@ func (a *app) handleGetMe(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, sanitizeUser(user))
+}
+
+func (a *app) handlePatchMe(w http.ResponseWriter, r *http.Request) {
+	claims, err := a.parseAccessTokenFromHeader(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	var req updateMeRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "リクエスト形式が不正です")
+		return
+	}
+
+	if strings.TrimSpace(req.Email) == "" && strings.TrimSpace(req.FirstName) == "" && strings.TrimSpace(req.LastName) == "" && strings.TrimSpace(req.DisplayName) == "" {
+		writeError(w, http.StatusBadRequest, "更新項目が不足しています")
+		return
+	}
+
+	updatedUser, err := a.store.UpdateUser(claims.UserID, req.FirstName, req.LastName, req.DisplayName, req.Email)
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrNotFound):
+			writeError(w, http.StatusNotFound, "ユーザーが存在しません")
+		case errors.Is(err, store.ErrConflict):
+			writeError(w, http.StatusConflict, "このメールアドレスは既に使用されています")
+		default:
+			writeError(w, http.StatusInternalServerError, "サーバーエラー")
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusOK, sanitizeUser(updatedUser))
 }
 
 func (a *app) handleListEvents(w http.ResponseWriter, r *http.Request) {

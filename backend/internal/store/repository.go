@@ -6,6 +6,7 @@ type Repository interface {
 	CreateUser(user model.User) (model.User, error)
 	FindUserByEmail(email string) (model.User, bool)
 	GetUserByID(id string) (model.User, bool)
+	UpdateUser(userID string, firstName string, lastName string, displayName string, email string) (model.User, error)
 	ListEvents(status string, search string) []model.Event
 	GetEventByID(id string) (model.Event, bool)
 	CreateReservation(userID string, eventID string) (model.Reservation, error)

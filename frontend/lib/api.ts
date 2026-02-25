@@ -102,6 +102,31 @@ export async function createReservation(eventId: string, accessToken: string): P
   return toReservation(response);
 }
 
+export async function getMe(accessToken: string): Promise<APIUser> {
+  return requestAuth<APIUser>("/users/me", accessToken, {
+    method: "GET",
+  });
+}
+
+type UpdateMeInput = {
+  firstName?: string;
+  lastName?: string;
+  displayName?: string;
+  email?: string;
+};
+
+export async function updateMe(accessToken: string, input: UpdateMeInput): Promise<APIUser> {
+  return requestAuth<APIUser>("/users/me", accessToken, {
+    method: "PATCH",
+    body: JSON.stringify({
+      first_name: input.firstName,
+      last_name: input.lastName,
+      display_name: input.displayName,
+      email: input.email,
+    }),
+  });
+}
+
 export async function listMyReservations(accessToken: string, status?: "reserved" | "cancelled"): Promise<Reservation[]> {
   const params = new URLSearchParams();
   if (status) {
