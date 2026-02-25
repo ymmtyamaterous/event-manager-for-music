@@ -1,0 +1,321 @@
+openapi: 3.0.3
+info:
+  title: Event Manager API
+  version: "1.0.0"
+  description: Event Manager for music の初期API定義
+servers:
+  - url: http://{HOST}:{API_PORT}/api/v1
+    variables:
+      HOST:
+        default: localhost
+      API_PORT:
+        default: "8000"
+tags:
+  - name: Auth
+  - name: Users
+  - name: Events
+paths:
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: ログイン
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: 認証失敗
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: ユーザー登録
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: 作成成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "409":
+          description: メール重複
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: トークン更新
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token:
+                  type: string
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [access_token]
+                properties:
+                  access_token:
+                    type: string
+  /users/me:
+    get:
+      tags: [Users]
+      summary: ログインユーザー情報取得
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+  /events:
+    get:
+      tags: [Events]
+      summary: イベント一覧取得
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [draft, published, cancelled]
+        - in: query
+          name: search
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Event"
+    post:
+      tags: [Events]
+      summary: イベント作成
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEventRequest"
+      responses:
+        "201":
+          description: 作成成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+  /events/{id}:
+    get:
+      tags: [Events]
+      summary: イベント詳細取得
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        "404":
+          description: 見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+    User:
+      type: object
+      required: [id, email, first_name, last_name, display_name, user_type]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        first_name:
+          type: string
+        last_name:
+          type: string
+        display_name:
+          type: string
+        user_type:
+          type: string
+          enum: [admin, organizer, performer, audience]
+        profile_image_path:
+          type: string
+          nullable: true
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+    RegisterRequest:
+      type: object
+      required: [email, password, first_name, last_name, display_name, user_type]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        first_name:
+          type: string
+        last_name:
+          type: string
+        display_name:
+          type: string
+        user_type:
+          type: string
+          enum: [organizer, performer, audience]
+    AuthResponse:
+      type: object
+      required: [access_token, refresh_token, user]
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        user:
+          $ref: "#/components/schemas/User"
+    Event:
+      type: object
+      required:
+        - id
+        - organizer_id
+        - title
+        - venue_name
+        - venue_address
+        - event_date
+        - doors_open_time
+        - start_time
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        organizer_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        venue_name:
+          type: string
+        venue_address:
+          type: string
+        event_date:
+          type: string
+          format: date
+        doors_open_time:
+          type: string
+        start_time:
+          type: string
+        end_time:
+          type: string
+          nullable: true
+        ticket_price:
+          type: integer
+          nullable: true
+        capacity:
+          type: integer
+          nullable: true
+        status:
+          type: string
+          enum: [draft, published, cancelled]
+    CreateEventRequest:
+      type: object
+      required:
+        - title
+        - venue_name
+        - venue_address
+        - event_date
+        - doors_open_time
+        - start_time
+        - status
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        venue_name:
+          type: string
+        venue_address:
+          type: string
+        event_date:
+          type: string
+          format: date
+        doors_open_time:
+          type: string
+        start_time:
+          type: string
+        end_time:
+          type: string
+        ticket_price:
+          type: integer
+        capacity:
+          type: integer
+        status:
+          type: string
+          enum: [draft, published]
