@@ -137,6 +137,10 @@ paths:
           name: search
           schema:
             type: string
+        - in: query
+          name: organizer_id
+          schema:
+            type: string
       responses:
         "200":
           description: 成功
@@ -188,6 +192,44 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      tags: [Events]
+      summary: イベント更新
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateEventRequest"
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+    delete:
+      tags: [Events]
+      summary: イベント削除
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: 削除成功
   /events/{id}/reservations:
     post:
       tags: [Events]
@@ -438,6 +480,34 @@ components:
         status:
           type: string
           enum: [draft, published]
+    UpdateEventRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        venue_name:
+          type: string
+        venue_address:
+          type: string
+        event_date:
+          type: string
+          format: date
+        doors_open_time:
+          type: string
+        start_time:
+          type: string
+        end_time:
+          type: string
+        ticket_price:
+          type: integer
+        capacity:
+          type: integer
+        status:
+          type: string
+          enum: [draft, published, cancelled]
     Reservation:
       type: object
       required:

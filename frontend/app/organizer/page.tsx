@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { APIUser, listEvents } from "@/lib/api";
+import { APIUser, listOrganizerEvents } from "@/lib/api";
 import { EventCard } from "@/types";
 
 export default function OrganizerPage() {
@@ -39,8 +39,8 @@ export default function OrganizerPage() {
       setIsLoading(true);
       setError("");
       try {
-        const published = await listEvents("", user.id);
-        setEvents(published ?? []);
+        const owned = await listOrganizerEvents(user.id);
+        setEvents(owned ?? []);
       } catch (err) {
         setError(err instanceof Error ? err.message : "イベント取得に失敗しました");
       } finally {
@@ -100,6 +100,14 @@ export default function OrganizerPage() {
                 <div className="inline-flex rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-800">公開中</div>
                 <h3 className="mt-2 text-lg font-bold text-gray-900">{event.title}</h3>
                 <p className="text-sm text-gray-600">📅 {event.eventDate} / 📍 {event.venueName}</p>
+                <div className="mt-3 flex gap-2">
+                  <Link href={`/organizer/events/${event.id}`} className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold py-1.5 px-3 rounded-lg transition-colors">
+                    詳細
+                  </Link>
+                  <Link href={`/organizer/events/${event.id}/edit`} className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-1.5 px-3 rounded-lg transition-colors">
+                    編集
+                  </Link>
+                </div>
               </article>
             ))}
           </div>
@@ -117,6 +125,14 @@ export default function OrganizerPage() {
                 <div className="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600">下書き</div>
                 <h3 className="mt-2 text-lg font-bold text-gray-900">{event.title}</h3>
                 <p className="text-sm text-gray-600">📅 {event.eventDate} / 📍 {event.venueName}</p>
+                <div className="mt-3 flex gap-2">
+                  <Link href={`/organizer/events/${event.id}`} className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold py-1.5 px-3 rounded-lg transition-colors">
+                    詳細
+                  </Link>
+                  <Link href={`/organizer/events/${event.id}/edit`} className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-1.5 px-3 rounded-lg transition-colors">
+                    編集
+                  </Link>
+                </div>
               </article>
             ))}
           </div>

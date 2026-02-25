@@ -10,6 +10,8 @@ type Repository interface {
 	ListEvents(status string, search string, organizerID string) []model.Event
 	GetEventByID(id string) (model.Event, bool)
 	CreateEvent(input model.CreateEventInput) (model.Event, error)
+	UpdateEvent(input model.UpdateEventInput) (model.Event, error)
+	DeleteEvent(eventID string, organizerID string) error
 	CreateReservation(userID string, eventID string) (model.Reservation, error)
 	ListReservationsByUser(userID string, status string) []model.Reservation
 	CancelReservation(userID string, reservationID string) (model.Reservation, error)

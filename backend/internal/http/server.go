@@ -62,6 +62,20 @@ type createEventRequest struct {
 	Status        string `json:"status"`
 }
 
+type updateEventRequest struct {
+	Title         *string `json:"title"`
+	Description   *string `json:"description"`
+	VenueName     *string `json:"venue_name"`
+	VenueAddress  *string `json:"venue_address"`
+	EventDate     *string `json:"event_date"`
+	DoorsOpenTime *string `json:"doors_open_time"`
+	StartTime     *string `json:"start_time"`
+	EndTime       *string `json:"end_time"`
+	TicketPrice   *int    `json:"ticket_price"`
+	Capacity      *int    `json:"capacity"`
+	Status        *string `json:"status"`
+}
+
 type refreshRequest struct {
 	RefreshToken string `json:"refresh_token"`
 }
@@ -112,6 +126,8 @@ func NewServer(cfg config.Config) *Server {
 	mux.HandleFunc("GET /api/v1/events", app.handleListEvents)
 	mux.HandleFunc("POST /api/v1/events", app.handleCreateEvent)
 	mux.HandleFunc("GET /api/v1/events/{id}", app.handleGetEvent)
+	mux.HandleFunc("PATCH /api/v1/events/{id}", app.handleUpdateEvent)
+	mux.HandleFunc("DELETE /api/v1/events/{id}", app.handleDeleteEvent)
 	mux.HandleFunc("POST /api/v1/events/{id}/reservations", app.handleCreateReservation)
 	mux.HandleFunc("GET /api/v1/reservations/me", app.handleListMyReservations)
 	mux.HandleFunc("PATCH /api/v1/reservations/{id}/cancel", app.handleCancelReservation)
@@ -402,6 +418,90 @@ func (a *app) handleGetEvent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, event)
+}
+
+func (a *app) handleUpdateEvent(w http.ResponseWriter, r *http.Request) {
+	claims, err := a.parseAccessTokenFromHeader(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	if claims.UserType != model.UserTypeOrganizer {
+		writeError(w, http.StatusForbidden, "運営者ユーザーのみイベントを更新できます")
+		return
+	}
+
+	var req updateEventRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "リクエスト形式が不正です")
+		return
+	}
+
+	var status *model.EventStatus
+	if req.Status != nil {
+		v := model.EventStatus(strings.TrimSpace(*req.Status))
+		if v != model.EventStatusDraft && v != model.EventStatusPublished && v != model.EventStatusCancelled {
+			writeError(w, http.StatusBadRequest, "status は draft / published / cancelled のいずれかを指定してください")
+			return
+		}
+		status = &v
+	}
+
+	updated, err := a.store.UpdateEvent(model.UpdateEventInput{
+		ID:            r.PathValue("id"),
+		OrganizerID:   claims.UserID,
+		Title:         req.Title,
+		Description:   req.Description,
+		VenueName:     req.VenueName,
+		VenueAddress:  req.VenueAddress,
+		EventDate:     req.EventDate,
+		DoorsOpenTime: req.DoorsOpenTime,
+		StartTime:     req.StartTime,
+		EndTime:       req.EndTime,
+		TicketPrice:   req.TicketPrice,
+		Capacity:      req.Capacity,
+		Status:        status,
+	})
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrForbidden):
+			writeError(w, http.StatusForbidden, "このイベントを更新する権限がありません")
+		case errors.Is(err, store.ErrNotFound):
+			writeError(w, http.StatusNotFound, "イベントが存在しません")
+		default:
+			writeError(w, http.StatusInternalServerError, "サーバーエラー")
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusOK, updated)
+}
+
+func (a *app) handleDeleteEvent(w http.ResponseWriter, r *http.Request) {
+	claims, err := a.parseAccessTokenFromHeader(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	if claims.UserType != model.UserTypeOrganizer {
+		writeError(w, http.StatusForbidden, "運営者ユーザーのみイベントを削除できます")
+		return
+	}
+
+	err = a.store.DeleteEvent(r.PathValue("id"), claims.UserID)
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrForbidden):
+			writeError(w, http.StatusForbidden, "このイベントを削除する権限がありません")
+		case errors.Is(err, store.ErrNotFound):
+			writeError(w, http.StatusNotFound, "イベントが存在しません")
+		default:
+			writeError(w, http.StatusInternalServerError, "サーバーエラー")
+		}
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (a *app) handleCreateReservation(w http.ResponseWriter, r *http.Request) {

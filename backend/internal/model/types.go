@@ -65,6 +65,22 @@ type CreateEventInput struct {
 	Status        EventStatus
 }
 
+type UpdateEventInput struct {
+	ID            string
+	OrganizerID   string
+	Title         *string
+	Description   *string
+	VenueName     *string
+	VenueAddress  *string
+	EventDate     *string
+	DoorsOpenTime *string
+	StartTime     *string
+	EndTime       *string
+	TicketPrice   *int
+	Capacity      *int
+	Status        *EventStatus
+}
+
 type ReservationStatus string
 
 const (

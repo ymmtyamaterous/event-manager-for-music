@@ -282,6 +282,80 @@ func (s *PostgresStore) CreateEvent(input model.CreateEventInput) (model.Event, 
 	return event, nil
 }
 
+func (s *PostgresStore) UpdateEvent(input model.UpdateEventInput) (model.Event, error) {
+	var currentOwnerID string
+	err := s.db.QueryRow(`SELECT organizer_id FROM events WHERE id = $1`, input.ID).Scan(&currentOwnerID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return model.Event{}, ErrNotFound
+	}
+	if err != nil {
+		return model.Event{}, err
+	}
+	if currentOwnerID != input.OrganizerID {
+		return model.Event{}, ErrForbidden
+	}
+
+	const q = `
+		UPDATE events
+		SET
+			title = COALESCE(NULLIF($2, ''), title),
+			description = CASE WHEN $3 IS NULL THEN description ELSE $3 END,
+			venue_name = COALESCE(NULLIF($4, ''), venue_name),
+			venue_address = COALESCE(NULLIF($5, ''), venue_address),
+			event_date = COALESCE(NULLIF($6, '')::date, event_date),
+			doors_open_time = COALESCE(NULLIF($7, '')::time, doors_open_time),
+			start_time = COALESCE(NULLIF($8, '')::time, start_time),
+			end_time = CASE WHEN $9 IS NULL OR $9 = '' THEN end_time ELSE $9::time END,
+			ticket_price = COALESCE($10, ticket_price),
+			capacity = COALESCE($11, capacity),
+			status = COALESCE(NULLIF($12, '')::event_status, status),
+			updated_at = NOW()
+		WHERE id = $1
+		RETURNING id, organizer_id, title, description, venue_name, venue_address, event_date, doors_open_time, start_time, end_time, ticket_price, capacity, status, created_at, updated_at
+	`
+
+	event, ok := scanEvent(s.db.QueryRow(
+		q,
+		input.ID,
+		stringOrNil(input.Title),
+		stringOrNil(input.Description),
+		stringOrNil(input.VenueName),
+		stringOrNil(input.VenueAddress),
+		stringOrNil(input.EventDate),
+		stringOrNil(input.DoorsOpenTime),
+		stringOrNil(input.StartTime),
+		stringOrNil(input.EndTime),
+		input.TicketPrice,
+		input.Capacity,
+		statusOrNil(input.Status),
+	))
+	if !ok {
+		return model.Event{}, ErrNotFound
+	}
+
+	return event, nil
+}
+
+func (s *PostgresStore) DeleteEvent(eventID string, organizerID string) error {
+	result, err := s.db.Exec(`DELETE FROM events WHERE id = $1 AND organizer_id = $2`, eventID, organizerID)
+	if err != nil {
+		return err
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		if _, exists := s.GetEventByID(eventID); !exists {
+			return ErrNotFound
+		}
+		return ErrForbidden
+	}
+
+	return nil
+}
+
 func (s *PostgresStore) GetEventByID(id string) (model.Event, bool) {
 	const q = `
 		SELECT id, organizer_id, title, description, venue_name, venue_address, event_date, doors_open_time, start_time, end_time, ticket_price, capacity, status, created_at, updated_at
@@ -569,4 +643,18 @@ func scanReservation(scanner reservationScanner) (model.Reservation, bool) {
 	}
 
 	return reservation, true
+}
+
+func stringOrNil(value *string) any {
+	if value == nil {
+		return nil
+	}
+	return strings.TrimSpace(*value)
+}
+
+func statusOrNil(status *model.EventStatus) any {
+	if status == nil {
+		return nil
+	}
+	return string(*status)
 }

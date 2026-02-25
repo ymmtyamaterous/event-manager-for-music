@@ -176,6 +176,78 @@ func (s *MemoryStore) CreateEvent(input model.CreateEventInput) (model.Event, er
 	return event, nil
 }
 
+func (s *MemoryStore) UpdateEvent(input model.UpdateEventInput) (model.Event, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	event, exists := s.eventsByID[input.ID]
+	if !exists {
+		return model.Event{}, ErrNotFound
+	}
+	if event.OrganizerID != input.OrganizerID {
+		return model.Event{}, ErrForbidden
+	}
+
+	if input.Title != nil {
+		event.Title = strings.TrimSpace(*input.Title)
+	}
+	if input.Description != nil {
+		v := strings.TrimSpace(*input.Description)
+		event.Description = &v
+	}
+	if input.VenueName != nil {
+		event.VenueName = strings.TrimSpace(*input.VenueName)
+	}
+	if input.VenueAddress != nil {
+		event.VenueAddress = strings.TrimSpace(*input.VenueAddress)
+	}
+	if input.EventDate != nil {
+		event.EventDate = strings.TrimSpace(*input.EventDate)
+	}
+	if input.DoorsOpenTime != nil {
+		event.DoorsOpenTime = strings.TrimSpace(*input.DoorsOpenTime)
+	}
+	if input.StartTime != nil {
+		event.StartTime = strings.TrimSpace(*input.StartTime)
+	}
+	if input.EndTime != nil {
+		v := strings.TrimSpace(*input.EndTime)
+		event.EndTime = &v
+	}
+	if input.TicketPrice != nil {
+		v := *input.TicketPrice
+		event.TicketPrice = &v
+	}
+	if input.Capacity != nil {
+		v := *input.Capacity
+		event.Capacity = &v
+	}
+	if input.Status != nil {
+		event.Status = *input.Status
+	}
+
+	event.UpdatedAt = nowInTokyo()
+	s.eventsByID[event.ID] = event
+
+	return event, nil
+}
+
+func (s *MemoryStore) DeleteEvent(eventID string, organizerID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	event, exists := s.eventsByID[eventID]
+	if !exists {
+		return ErrNotFound
+	}
+	if event.OrganizerID != organizerID {
+		return ErrForbidden
+	}
+
+	delete(s.eventsByID, eventID)
+	return nil
+}
+
 func (s *MemoryStore) GetEventByID(id string) (model.Event, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

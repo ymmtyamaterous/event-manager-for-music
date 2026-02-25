@@ -35,6 +35,8 @@ type APIEvent = {
   status: "draft" | "published" | "cancelled";
 };
 
+type EventStatus = "draft" | "published" | "cancelled";
+
 type APIReservation = {
   id: string;
   event_id: string;
@@ -89,6 +91,14 @@ export async function listEvents(searchWord: string, organizerId?: string): Prom
   return response.map(toEventCard);
 }
 
+export async function listOrganizerEvents(organizerId: string): Promise<EventCard[]> {
+  const params = new URLSearchParams({ organizer_id: organizerId });
+  const response = await request<APIEvent[]>(`/events?${params.toString()}`, {
+    method: "GET",
+  });
+  return response.map(toEventCard);
+}
+
 type CreateEventInput = {
   title: string;
   description?: string;
@@ -122,6 +132,47 @@ export async function createEvent(accessToken: string, input: CreateEventInput):
   });
 
   return toEventCard(response);
+}
+
+type UpdateEventInput = Partial<{
+  title: string;
+  description: string;
+  venueName: string;
+  venueAddress: string;
+  eventDate: string;
+  doorsOpenTime: string;
+  startTime: string;
+  endTime: string;
+  ticketPrice: number;
+  capacity: number;
+  status: EventStatus;
+}>;
+
+export async function updateEvent(eventId: string, accessToken: string, input: UpdateEventInput): Promise<EventCard> {
+  const response = await requestAuth<APIEvent>(`/events/${eventId}`, accessToken, {
+    method: "PATCH",
+    body: JSON.stringify({
+      title: input.title,
+      description: input.description,
+      venue_name: input.venueName,
+      venue_address: input.venueAddress,
+      event_date: input.eventDate,
+      doors_open_time: input.doorsOpenTime,
+      start_time: input.startTime,
+      end_time: input.endTime,
+      ticket_price: input.ticketPrice,
+      capacity: input.capacity,
+      status: input.status,
+    }),
+  });
+
+  return toEventCard(response);
+}
+
+export async function deleteEvent(eventId: string, accessToken: string): Promise<void> {
+  await requestAuthWithoutJson(`/events/${eventId}`, accessToken, {
+    method: "DELETE",
+  });
 }
 
 export async function getEvent(id: string): Promise<EventCard> {
@@ -242,4 +293,21 @@ async function requestAuth<T>(path: string, accessToken: string, init: RequestIn
       ...(init.headers ?? {}),
     },
   });
+}
+
+async function requestAuthWithoutJson(path: string, accessToken: string, init: RequestInit): Promise<void> {
+  const response = await fetch(`${API_BASE}${path}`, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+      ...(init.headers ?? {}),
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const data = (await response.json().catch(() => null)) as APIErrorResponse | null;
+    throw new Error(data?.error ?? "APIリクエストに失敗しました");
+  }
 }
