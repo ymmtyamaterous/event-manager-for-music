@@ -203,6 +203,84 @@ func (s *PostgresStore) UpdateUser(userID string, firstName string, lastName str
 	return user, nil
 }
 
+func (s *PostgresStore) ListBandsByOwner(userID string) ([]model.Band, error) {
+	const q = `
+		SELECT id, owner_id, name, genre, description, created_at, updated_at
+		FROM bands
+		WHERE owner_id = $1
+		ORDER BY created_at DESC
+	`
+
+	rows, err := s.db.Query(q, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result := make([]model.Band, 0)
+	for rows.Next() {
+		band, ok := scanBand(rows)
+		if ok {
+			result = append(result, band)
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (s *PostgresStore) CreateBand(userID string, name string, genre string, description string) (model.Band, error) {
+	var userType string
+	err := s.db.QueryRow(`SELECT user_type FROM users WHERE id = $1`, userID).Scan(&userType)
+	if errors.Is(err, sql.ErrNoRows) {
+		return model.Band{}, ErrNotFound
+	}
+	if err != nil {
+		return model.Band{}, err
+	}
+	if userType != string(model.UserTypePerformer) {
+		return model.Band{}, ErrForbidden
+	}
+
+	trimmedName := strings.TrimSpace(name)
+	if trimmedName == "" {
+		return model.Band{}, ErrConflict
+	}
+
+	trimmedGenre := strings.TrimSpace(genre)
+	trimmedDescription := strings.TrimSpace(description)
+
+	var genreArg any
+	if trimmedGenre == "" {
+		genreArg = nil
+	} else {
+		genreArg = trimmedGenre
+	}
+
+	var descriptionArg any
+	if trimmedDescription == "" {
+		descriptionArg = nil
+	} else {
+		descriptionArg = trimmedDescription
+	}
+
+	const q = `
+		INSERT INTO bands (owner_id, name, genre, description)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id, owner_id, name, genre, description, created_at, updated_at
+	`
+
+	band, ok := scanBand(s.db.QueryRow(q, userID, trimmedName, genreArg, descriptionArg))
+	if !ok {
+		return model.Band{}, errors.New("バンド作成に失敗しました")
+	}
+
+	return band, nil
+}
+
 func (s *PostgresStore) ListEvents(status string, search string, organizerID string) []model.Event {
 	base := `
 		SELECT id, organizer_id, title, description, venue_name, venue_address, event_date, doors_open_time, start_time, end_time, ticket_price, capacity, status, created_at, updated_at
@@ -983,6 +1061,10 @@ type entryWithBandScanner interface {
 	Scan(dest ...any) error
 }
 
+type bandScanner interface {
+	Scan(dest ...any) error
+}
+
 func scanEvent(scanner eventScanner) (model.Event, bool) {
 	var event model.Event
 	var description sql.NullString
@@ -1197,6 +1279,36 @@ func scanEntryWithBand(scanner entryWithBandScanner) (model.EntryWithBand, bool)
 	}
 
 	return item, true
+}
+
+func scanBand(scanner bandScanner) (model.Band, bool) {
+	var band model.Band
+	var genre sql.NullString
+	var description sql.NullString
+
+	err := scanner.Scan(
+		&band.ID,
+		&band.OwnerID,
+		&band.Name,
+		&genre,
+		&description,
+		&band.CreatedAt,
+		&band.UpdatedAt,
+	)
+	if errors.Is(err, sql.ErrNoRows) || err != nil {
+		return model.Band{}, false
+	}
+
+	if genre.Valid {
+		v := genre.String
+		band.Genre = &v
+	}
+	if description.Valid {
+		v := description.String
+		band.Description = &v
+	}
+
+	return band, true
 }
 
 func stringOrNil(value *string) any {

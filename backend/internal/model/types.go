@@ -24,6 +24,16 @@ type User struct {
 	UpdatedAt        time.Time `json:"updated_at"`
 }
 
+type Band struct {
+	ID          string    `json:"id"`
+	OwnerID     string    `json:"owner_id"`
+	Name        string    `json:"name"`
+	Genre       *string   `json:"genre"`
+	Description *string   `json:"description"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
 type EventStatus string
 
 const (

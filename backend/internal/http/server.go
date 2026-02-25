@@ -93,6 +93,12 @@ type rejectEntryRequest struct {
 	RejectionReason string `json:"rejection_reason"`
 }
 
+type createBandRequest struct {
+	Name        string `json:"name"`
+	Genre       string `json:"genre"`
+	Description string `json:"description"`
+}
+
 type refreshRequest struct {
 	RefreshToken string `json:"refresh_token"`
 }
@@ -140,6 +146,8 @@ func NewServer(cfg config.Config) *Server {
 	mux.HandleFunc("POST /api/v1/auth/refresh", app.handleRefresh)
 	mux.HandleFunc("GET /api/v1/users/me", app.handleGetMe)
 	mux.HandleFunc("PATCH /api/v1/users/me", app.handlePatchMe)
+	mux.HandleFunc("GET /api/v1/bands/me", app.handleListMyBands)
+	mux.HandleFunc("POST /api/v1/bands", app.handleCreateBand)
 	mux.HandleFunc("GET /api/v1/events", app.handleListEvents)
 	mux.HandleFunc("POST /api/v1/events", app.handleCreateEvent)
 	mux.HandleFunc("GET /api/v1/events/{id}", app.handleGetEvent)
@@ -347,6 +355,65 @@ func (a *app) handlePatchMe(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, sanitizeUser(updatedUser))
+}
+
+func (a *app) handleListMyBands(w http.ResponseWriter, r *http.Request) {
+	claims, err := a.parseAccessTokenFromHeader(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	if claims.UserType != model.UserTypePerformer {
+		writeError(w, http.StatusForbidden, "出演者ユーザーのみバンド一覧を参照できます")
+		return
+	}
+
+	bands, err := a.store.ListBandsByOwner(claims.UserID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "サーバーエラー")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, bands)
+}
+
+func (a *app) handleCreateBand(w http.ResponseWriter, r *http.Request) {
+	claims, err := a.parseAccessTokenFromHeader(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	if claims.UserType != model.UserTypePerformer {
+		writeError(w, http.StatusForbidden, "出演者ユーザーのみバンド作成できます")
+		return
+	}
+
+	var req createBandRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "リクエスト形式が不正です")
+		return
+	}
+
+	req.Name = strings.TrimSpace(req.Name)
+	if req.Name == "" {
+		writeError(w, http.StatusBadRequest, "name は必須です")
+		return
+	}
+
+	band, err := a.store.CreateBand(claims.UserID, req.Name, req.Genre, req.Description)
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrForbidden):
+			writeError(w, http.StatusForbidden, "バンド作成権限がありません")
+		case errors.Is(err, store.ErrNotFound):
+			writeError(w, http.StatusNotFound, "ユーザーが存在しません")
+		default:
+			writeError(w, http.StatusInternalServerError, "サーバーエラー")
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, band)
 }
 
 func (a *app) handleListEvents(w http.ResponseWriter, r *http.Request) {

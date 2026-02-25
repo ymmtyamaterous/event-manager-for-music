@@ -1,4 +1,4 @@
-import { Announcement, EventCard, EventEntry, OrganizerReservation, RegisterFormData, Reservation, UserType } from "@/types";
+import { Announcement, Band, EventCard, EventEntry, OrganizerReservation, RegisterFormData, Reservation, UserType } from "@/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000/api/v1";
 
@@ -74,6 +74,16 @@ type APIEntryWithBand = {
   created_at: string;
   updated_at: string;
   band_name: string;
+};
+
+type APIBand = {
+  id: string;
+  owner_id: string;
+  name: string;
+  genre: string | null;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 type LoginInput = {
@@ -405,6 +415,43 @@ export async function rejectEntry(entryId: string, accessToken: string, rejectio
   return toEventEntry(response);
 }
 
+export async function listMyBands(accessToken: string): Promise<Band[]> {
+  const response = await requestAuth<APIBand[]>("/bands/me", accessToken, {
+    method: "GET",
+  });
+
+  return response.map(toBand);
+}
+
+type CreateBandInput = {
+  name: string;
+  genre?: string;
+  description?: string;
+};
+
+export async function createBand(accessToken: string, input: CreateBandInput): Promise<Band> {
+  const response = await requestAuth<APIBand>("/bands", accessToken, {
+    method: "POST",
+    body: JSON.stringify({
+      name: input.name,
+      genre: input.genre,
+      description: input.description,
+    }),
+  });
+
+  return toBand(response);
+}
+
+export async function createEntry(eventId: string, accessToken: string, bandId: string, message?: string): Promise<void> {
+  await requestAuth(`/events/${eventId}/entries`, accessToken, {
+    method: "POST",
+    body: JSON.stringify({
+      band_id: bandId,
+      message,
+    }),
+  });
+}
+
 function toEventCard(event: APIEvent): EventCard {
   return {
     id: event.id,
@@ -463,6 +510,18 @@ function toEventEntry(entry: APIEntryWithBand): EventEntry {
     createdAt: entry.created_at,
     updatedAt: entry.updated_at,
     bandName: entry.band_name,
+  };
+}
+
+function toBand(band: APIBand): Band {
+  return {
+    id: band.id,
+    ownerId: band.owner_id,
+    name: band.name,
+    genre: band.genre,
+    description: band.description,
+    createdAt: band.created_at,
+    updatedAt: band.updated_at,
   };
 }
 

@@ -13,6 +13,7 @@ servers:
 tags:
   - name: Auth
   - name: Users
+  - name: Bands
   - name: Events
   - name: Announcements
   - name: Entries
@@ -121,6 +122,52 @@ paths:
                 $ref: "#/components/schemas/User"
         "409":
           description: メール重複
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /bands/me:
+    get:
+      tags: [Bands]
+      summary: 自分のバンド一覧取得
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Band"
+        "403":
+          description: 権限なし
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /bands:
+    post:
+      tags: [Bands]
+      summary: バンド作成
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBandRequest"
+      responses:
+        "201":
+          description: 作成成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Band"
+        "403":
+          description: 権限なし
           content:
             application/json:
               schema:
@@ -957,4 +1004,36 @@ components:
       required: [rejection_reason]
       properties:
         rejection_reason:
+          type: string
+    Band:
+      type: object
+      required: [id, owner_id, name, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        owner_id:
+          type: string
+        name:
+          type: string
+        genre:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    CreateBandRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        genre:
+          type: string
+        description:
           type: string

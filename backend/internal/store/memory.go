@@ -15,6 +15,7 @@ type MemoryStore struct {
 	mu                sync.RWMutex
 	usersByID         map[string]model.User
 	userByEmail       map[string]string
+	bandsByID         map[string]model.Band
 	eventsByID        map[string]model.Event
 	reservationsByID  map[string]model.Reservation
 	announcementsByID map[string]model.Announcement
@@ -25,6 +26,7 @@ func NewMemoryStore() *MemoryStore {
 	s := &MemoryStore{
 		usersByID:         map[string]model.User{},
 		userByEmail:       map[string]string{},
+		bandsByID:         map[string]model.Band{},
 		eventsByID:        map[string]model.Event{},
 		reservationsByID:  map[string]model.Reservation{},
 		announcementsByID: map[string]model.Announcement{},
@@ -32,6 +34,64 @@ func NewMemoryStore() *MemoryStore {
 	}
 	s.seedEvents()
 	return s
+}
+
+func (s *MemoryStore) ListBandsByOwner(userID string) ([]model.Band, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	result := make([]model.Band, 0)
+	for _, band := range s.bandsByID {
+		if band.OwnerID == userID {
+			result = append(result, band)
+		}
+	}
+
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].CreatedAt.After(result[j].CreatedAt)
+	})
+
+	return result, nil
+}
+
+func (s *MemoryStore) CreateBand(userID string, name string, genre string, description string) (model.Band, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	user, exists := s.usersByID[userID]
+	if !exists {
+		return model.Band{}, ErrNotFound
+	}
+	if user.UserType != model.UserTypePerformer {
+		return model.Band{}, ErrForbidden
+	}
+
+	trimmedName := strings.TrimSpace(name)
+	if trimmedName == "" {
+		return model.Band{}, ErrConflict
+	}
+
+	now := nowInTokyo()
+	band := model.Band{
+		ID:        uuid.NewString(),
+		OwnerID:   userID,
+		Name:      trimmedName,
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+
+	trimmedGenre := strings.TrimSpace(genre)
+	if trimmedGenre != "" {
+		band.Genre = &trimmedGenre
+	}
+
+	trimmedDescription := strings.TrimSpace(description)
+	if trimmedDescription != "" {
+		band.Description = &trimmedDescription
+	}
+
+	s.bandsByID[band.ID] = band
+	return band, nil
 }
 
 func (s *MemoryStore) CreateUser(user model.User) (model.User, error) {
@@ -523,7 +583,7 @@ func (s *MemoryStore) ListEntriesByEvent(eventID string, organizerID string, sta
 		}
 		result = append(result, model.EntryWithBand{
 			Entry:    entry,
-			BandName: "(band)",
+			BandName: s.bandNameByID(entry.BandID),
 		})
 	}
 
@@ -549,6 +609,14 @@ func (s *MemoryStore) CreateEntry(eventID string, userID string, bandID string, 
 	event, exists := s.eventsByID[eventID]
 	if !exists || event.Status != model.EventStatusPublished {
 		return model.Entry{}, ErrNotFound
+	}
+
+	band, exists := s.bandsByID[strings.TrimSpace(bandID)]
+	if !exists {
+		return model.Entry{}, ErrNotFound
+	}
+	if band.OwnerID != userID {
+		return model.Entry{}, ErrForbidden
 	}
 
 	for _, existing := range s.entriesByID {
@@ -631,6 +699,14 @@ func (s *MemoryStore) RejectEntry(entryID string, organizerID string, rejectionR
 
 	s.entriesByID[entry.ID] = entry
 	return entry, nil
+}
+
+func (s *MemoryStore) bandNameByID(bandID string) string {
+	band, exists := s.bandsByID[bandID]
+	if !exists {
+		return "(不明なバンド)"
+	}
+	return band.Name
 }
 
 func (s *MemoryStore) seedEvents() {

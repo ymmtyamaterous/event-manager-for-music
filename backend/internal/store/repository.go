@@ -7,6 +7,8 @@ type Repository interface {
 	FindUserByEmail(email string) (model.User, bool)
 	GetUserByID(id string) (model.User, bool)
 	UpdateUser(userID string, firstName string, lastName string, displayName string, email string) (model.User, error)
+	ListBandsByOwner(userID string) ([]model.Band, error)
+	CreateBand(userID string, name string, genre string, description string) (model.Band, error)
 	ListEvents(status string, search string, organizerID string) []model.Event
 	GetEventByID(id string) (model.Event, bool)
 	CreateEvent(input model.CreateEventInput) (model.Event, error)

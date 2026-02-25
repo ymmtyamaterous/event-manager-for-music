@@ -13,6 +13,16 @@ export type EventCard = {
   status: EventStatus;
 };
 
+export type Band = {
+  id: string;
+  ownerId: string;
+  name: string;
+  genre: string | null;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type LoginFormData = {
   email: string;
   password: string;
