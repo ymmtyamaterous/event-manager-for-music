@@ -57,3 +57,17 @@ export type Announcement = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type EntryStatus = "pending" | "approved" | "rejected";
+
+export type EventEntry = {
+  id: string;
+  eventId: string;
+  bandId: string;
+  status: EntryStatus;
+  message: string | null;
+  rejectionReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+  bandName: string;
+};

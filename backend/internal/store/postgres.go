@@ -737,6 +737,228 @@ func (s *PostgresStore) DeleteAnnouncement(eventID string, announcementID string
 	return nil
 }
 
+func (s *PostgresStore) ListEntriesByEvent(eventID string, organizerID string, status string) ([]model.EntryWithBand, error) {
+	var ownerID string
+	err := s.db.QueryRow(`SELECT organizer_id FROM events WHERE id = $1`, eventID).Scan(&ownerID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	if ownerID != organizerID {
+		return nil, ErrForbidden
+	}
+
+	base := `
+		SELECT
+			e.id,
+			e.event_id,
+			e.band_id,
+			e.status,
+			e.message,
+			e.rejection_reason,
+			e.created_at,
+			e.updated_at,
+			b.name
+		FROM entries e
+		INNER JOIN bands b ON b.id = e.band_id
+		WHERE e.event_id = $1
+	`
+
+	args := []any{eventID}
+	if strings.TrimSpace(status) != "" {
+		base += " AND e.status = $2"
+		args = append(args, strings.TrimSpace(status))
+	}
+
+	base += " ORDER BY e.created_at DESC"
+
+	rows, err := s.db.Query(base, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result := make([]model.EntryWithBand, 0)
+	for rows.Next() {
+		item, ok := scanEntryWithBand(rows)
+		if ok {
+			result = append(result, item)
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (s *PostgresStore) CreateEntry(eventID string, userID string, bandID string, message string) (model.Entry, error) {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return model.Entry{}, err
+	}
+	defer tx.Rollback()
+
+	var userType string
+	err = tx.QueryRow(`SELECT user_type FROM users WHERE id = $1`, userID).Scan(&userType)
+	if errors.Is(err, sql.ErrNoRows) {
+		return model.Entry{}, ErrNotFound
+	}
+	if err != nil {
+		return model.Entry{}, err
+	}
+	if userType != string(model.UserTypePerformer) {
+		return model.Entry{}, ErrForbidden
+	}
+
+	var bandExists bool
+	err = tx.QueryRow(`SELECT EXISTS(SELECT 1 FROM bands WHERE id = $1 AND owner_id = $2)`, bandID, userID).Scan(&bandExists)
+	if err != nil {
+		return model.Entry{}, err
+	}
+	if !bandExists {
+		return model.Entry{}, ErrForbidden
+	}
+
+	var eventExists bool
+	err = tx.QueryRow(`SELECT EXISTS(SELECT 1 FROM events WHERE id = $1 AND status = 'published')`, eventID).Scan(&eventExists)
+	if err != nil {
+		return model.Entry{}, err
+	}
+	if !eventExists {
+		return model.Entry{}, ErrNotFound
+	}
+
+	trimmedMessage := strings.TrimSpace(message)
+	var messageArg any
+	if trimmedMessage == "" {
+		messageArg = nil
+	} else {
+		messageArg = trimmedMessage
+	}
+
+	const q = `
+		INSERT INTO entries (event_id, band_id, status, message)
+		VALUES ($1, $2, 'pending', $3)
+		RETURNING id, event_id, band_id, status, message, rejection_reason, created_at, updated_at
+	`
+
+	entry, ok := scanEntry(tx.QueryRow(q, eventID, bandID, messageArg))
+	if !ok {
+		return model.Entry{}, ErrConflict
+	}
+
+	if err := tx.Commit(); err != nil {
+		if isUniqueViolation(err) {
+			return model.Entry{}, ErrConflict
+		}
+		return model.Entry{}, err
+	}
+
+	return entry, nil
+}
+
+func (s *PostgresStore) ApproveEntry(entryID string, organizerID string) (model.Entry, error) {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return model.Entry{}, err
+	}
+	defer tx.Rollback()
+
+	var ownerID string
+	var currentStatus string
+	err = tx.QueryRow(
+		`SELECT ev.organizer_id, e.status FROM entries e INNER JOIN events ev ON ev.id = e.event_id WHERE e.id = $1`,
+		entryID,
+	).Scan(&ownerID, &currentStatus)
+	if errors.Is(err, sql.ErrNoRows) {
+		return model.Entry{}, ErrNotFound
+	}
+	if err != nil {
+		return model.Entry{}, err
+	}
+	if ownerID != organizerID {
+		return model.Entry{}, ErrForbidden
+	}
+	if currentStatus == string(model.EntryStatusApproved) {
+		return model.Entry{}, ErrConflict
+	}
+
+	const updateQ = `
+		UPDATE entries
+		SET status = 'approved', rejection_reason = NULL, updated_at = NOW()
+		WHERE id = $1
+		RETURNING id, event_id, band_id, status, message, rejection_reason, created_at, updated_at
+	`
+
+	entry, ok := scanEntry(tx.QueryRow(updateQ, entryID))
+	if !ok {
+		return model.Entry{}, ErrNotFound
+	}
+
+	const perfQ = `
+		INSERT INTO performances (event_id, band_id, performance_order)
+		SELECT $1, $2, COALESCE(MAX(performance_order), 0) + 1
+		FROM performances
+		WHERE event_id = $1
+		ON CONFLICT (event_id, band_id) DO NOTHING
+	`
+
+	if _, err := tx.Exec(perfQ, entry.EventID, entry.BandID); err != nil {
+		return model.Entry{}, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return model.Entry{}, err
+	}
+
+	return entry, nil
+}
+
+func (s *PostgresStore) RejectEntry(entryID string, organizerID string, rejectionReason string) (model.Entry, error) {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return model.Entry{}, err
+	}
+	defer tx.Rollback()
+
+	var ownerID string
+	err = tx.QueryRow(
+		`SELECT ev.organizer_id FROM entries e INNER JOIN events ev ON ev.id = e.event_id WHERE e.id = $1`,
+		entryID,
+	).Scan(&ownerID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return model.Entry{}, ErrNotFound
+	}
+	if err != nil {
+		return model.Entry{}, err
+	}
+	if ownerID != organizerID {
+		return model.Entry{}, ErrForbidden
+	}
+
+	const updateQ = `
+		UPDATE entries
+		SET status = 'rejected', rejection_reason = $2, updated_at = NOW()
+		WHERE id = $1
+		RETURNING id, event_id, band_id, status, message, rejection_reason, created_at, updated_at
+	`
+
+	entry, ok := scanEntry(tx.QueryRow(updateQ, entryID, strings.TrimSpace(rejectionReason)))
+	if !ok {
+		return model.Entry{}, ErrNotFound
+	}
+
+	if err := tx.Commit(); err != nil {
+		return model.Entry{}, err
+	}
+
+	return entry, nil
+}
+
 type eventScanner interface {
 	Scan(dest ...any) error
 }
@@ -750,6 +972,14 @@ type reservationWithUserScanner interface {
 }
 
 type announcementScanner interface {
+	Scan(dest ...any) error
+}
+
+type entryScanner interface {
+	Scan(dest ...any) error
+}
+
+type entryWithBandScanner interface {
 	Scan(dest ...any) error
 }
 
@@ -900,6 +1130,73 @@ func scanAnnouncement(scanner announcementScanner) (model.Announcement, bool) {
 	}
 
 	return announcement, true
+}
+
+func scanEntry(scanner entryScanner) (model.Entry, bool) {
+	var entry model.Entry
+	var status string
+	var message sql.NullString
+	var rejectionReason sql.NullString
+
+	err := scanner.Scan(
+		&entry.ID,
+		&entry.EventID,
+		&entry.BandID,
+		&status,
+		&message,
+		&rejectionReason,
+		&entry.CreatedAt,
+		&entry.UpdatedAt,
+	)
+	if errors.Is(err, sql.ErrNoRows) || err != nil {
+		return model.Entry{}, false
+	}
+
+	entry.Status = model.EntryStatus(status)
+	if message.Valid {
+		v := message.String
+		entry.Message = &v
+	}
+	if rejectionReason.Valid {
+		v := rejectionReason.String
+		entry.RejectionReason = &v
+	}
+
+	return entry, true
+}
+
+func scanEntryWithBand(scanner entryWithBandScanner) (model.EntryWithBand, bool) {
+	var item model.EntryWithBand
+	var status string
+	var message sql.NullString
+	var rejectionReason sql.NullString
+
+	err := scanner.Scan(
+		&item.ID,
+		&item.EventID,
+		&item.BandID,
+		&status,
+		&message,
+		&rejectionReason,
+		&item.CreatedAt,
+		&item.UpdatedAt,
+		&item.BandName,
+	)
+	if errors.Is(err, sql.ErrNoRows) || err != nil {
+		return model.EntryWithBand{}, false
+	}
+
+	item.Status = model.EntryStatus(status)
+	if message.Valid {
+		v := message.String
+		item.Message = &v
+	}
+	if rejectionReason.Valid {
+		v := rejectionReason.String
+		item.RejectionReason = &v
+	}
+
+	return item, true
 }
 
 func stringOrNil(value *string) any {

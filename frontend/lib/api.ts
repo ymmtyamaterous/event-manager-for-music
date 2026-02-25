@@ -1,4 +1,4 @@
-import { Announcement, EventCard, OrganizerReservation, RegisterFormData, Reservation, UserType } from "@/types";
+import { Announcement, EventCard, EventEntry, OrganizerReservation, RegisterFormData, Reservation, UserType } from "@/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000/api/v1";
 
@@ -62,6 +62,18 @@ type APIAnnouncement = {
   published_at: string;
   created_at: string;
   updated_at: string;
+};
+
+type APIEntryWithBand = {
+  id: string;
+  event_id: string;
+  band_id: string;
+  status: "pending" | "approved" | "rejected";
+  message: string | null;
+  rejection_reason: string | null;
+  created_at: string;
+  updated_at: string;
+  band_name: string;
 };
 
 type LoginInput = {
@@ -355,6 +367,44 @@ export async function deleteEventAnnouncement(eventId: string, announcementId: s
   });
 }
 
+export async function listEventEntries(
+  eventId: string,
+  accessToken: string,
+  status?: "pending" | "approved" | "rejected",
+): Promise<EventEntry[]> {
+  const params = new URLSearchParams();
+  if (status) {
+    params.set("status", status);
+  }
+  const query = params.toString();
+  const path = query ? `/events/${eventId}/entries?${query}` : `/events/${eventId}/entries`;
+
+  const response = await requestAuth<APIEntryWithBand[]>(path, accessToken, {
+    method: "GET",
+  });
+
+  return response.map(toEventEntry);
+}
+
+export async function approveEntry(entryId: string, accessToken: string): Promise<EventEntry> {
+  const response = await requestAuth<APIEntryWithBand>(`/entries/${entryId}/approve`, accessToken, {
+    method: "PATCH",
+  });
+
+  return toEventEntry(response);
+}
+
+export async function rejectEntry(entryId: string, accessToken: string, rejectionReason: string): Promise<EventEntry> {
+  const response = await requestAuth<APIEntryWithBand>(`/entries/${entryId}/reject`, accessToken, {
+    method: "PATCH",
+    body: JSON.stringify({
+      rejection_reason: rejectionReason,
+    }),
+  });
+
+  return toEventEntry(response);
+}
+
 function toEventCard(event: APIEvent): EventCard {
   return {
     id: event.id,
@@ -399,6 +449,20 @@ function toAnnouncement(announcement: APIAnnouncement): Announcement {
     publishedAt: announcement.published_at,
     createdAt: announcement.created_at,
     updatedAt: announcement.updated_at,
+  };
+}
+
+function toEventEntry(entry: APIEntryWithBand): EventEntry {
+  return {
+    id: entry.id,
+    eventId: entry.event_id,
+    bandId: entry.band_id,
+    status: entry.status,
+    message: entry.message,
+    rejectionReason: entry.rejection_reason,
+    createdAt: entry.created_at,
+    updatedAt: entry.updated_at,
+    bandName: entry.band_name,
   };
 }
 

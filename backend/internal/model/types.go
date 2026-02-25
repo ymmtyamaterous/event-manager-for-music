@@ -115,3 +115,27 @@ type Announcement struct {
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
+
+type EntryStatus string
+
+const (
+	EntryStatusPending  EntryStatus = "pending"
+	EntryStatusApproved EntryStatus = "approved"
+	EntryStatusRejected EntryStatus = "rejected"
+)
+
+type Entry struct {
+	ID              string      `json:"id"`
+	EventID         string      `json:"event_id"`
+	BandID          string      `json:"band_id"`
+	Status          EntryStatus `json:"status"`
+	Message         *string     `json:"message"`
+	RejectionReason *string     `json:"rejection_reason"`
+	CreatedAt       time.Time   `json:"created_at"`
+	UpdatedAt       time.Time   `json:"updated_at"`
+}
+
+type EntryWithBand struct {
+	Entry
+	BandName string `json:"band_name"`
+}

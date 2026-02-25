@@ -84,6 +84,15 @@ type announcementRequest struct {
 	Content string `json:"content"`
 }
 
+type createEntryRequest struct {
+	BandID  string `json:"band_id"`
+	Message string `json:"message"`
+}
+
+type rejectEntryRequest struct {
+	RejectionReason string `json:"rejection_reason"`
+}
+
 type refreshRequest struct {
 	RefreshToken string `json:"refresh_token"`
 }
@@ -142,8 +151,12 @@ func NewServer(cfg config.Config) *Server {
 	mux.HandleFunc("POST /api/v1/events/{id}/announcements", app.handleCreateAnnouncement)
 	mux.HandleFunc("PATCH /api/v1/events/{id}/announcements/{announcementId}", app.handleUpdateAnnouncement)
 	mux.HandleFunc("DELETE /api/v1/events/{id}/announcements/{announcementId}", app.handleDeleteAnnouncement)
+	mux.HandleFunc("GET /api/v1/events/{id}/entries", app.handleListEntriesByEvent)
+	mux.HandleFunc("POST /api/v1/events/{id}/entries", app.handleCreateEntry)
 	mux.HandleFunc("GET /api/v1/reservations/me", app.handleListMyReservations)
 	mux.HandleFunc("PATCH /api/v1/reservations/{id}/cancel", app.handleCancelReservation)
+	mux.HandleFunc("PATCH /api/v1/entries/{id}/approve", app.handleApproveEntry)
+	mux.HandleFunc("PATCH /api/v1/entries/{id}/reject", app.handleRejectEntry)
 
 	server := &http.Server{
 		Addr:    cfg.Address(),
@@ -746,6 +759,145 @@ func (a *app) handleDeleteAnnouncement(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (a *app) handleListEntriesByEvent(w http.ResponseWriter, r *http.Request) {
+	claims, err := a.parseAccessTokenFromHeader(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	if claims.UserType != model.UserTypeOrganizer {
+		writeError(w, http.StatusForbidden, "運営者ユーザーのみエントリー一覧を参照できます")
+		return
+	}
+
+	eventID := r.PathValue("id")
+	status := strings.TrimSpace(r.URL.Query().Get("status"))
+
+	entries, err := a.store.ListEntriesByEvent(eventID, claims.UserID, status)
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrForbidden):
+			writeError(w, http.StatusForbidden, "このイベントのエントリー一覧を参照する権限がありません")
+		case errors.Is(err, store.ErrNotFound):
+			writeError(w, http.StatusNotFound, "イベントが存在しません")
+		default:
+			writeError(w, http.StatusInternalServerError, "サーバーエラー")
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusOK, entries)
+}
+
+func (a *app) handleCreateEntry(w http.ResponseWriter, r *http.Request) {
+	claims, err := a.parseAccessTokenFromHeader(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	if claims.UserType != model.UserTypePerformer {
+		writeError(w, http.StatusForbidden, "出演者ユーザーのみエントリー申請できます")
+		return
+	}
+
+	var req createEntryRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "リクエスト形式が不正です")
+		return
+	}
+
+	req.BandID = strings.TrimSpace(req.BandID)
+	if req.BandID == "" {
+		writeError(w, http.StatusBadRequest, "band_id は必須です")
+		return
+	}
+
+	entry, err := a.store.CreateEntry(r.PathValue("id"), claims.UserID, req.BandID, req.Message)
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrForbidden):
+			writeError(w, http.StatusForbidden, "このバンドでエントリー申請する権限がありません")
+		case errors.Is(err, store.ErrConflict):
+			writeError(w, http.StatusConflict, "同一イベントへの重複エントリーはできません")
+		case errors.Is(err, store.ErrNotFound):
+			writeError(w, http.StatusNotFound, "イベントまたはユーザーが存在しません")
+		default:
+			writeError(w, http.StatusInternalServerError, "サーバーエラー")
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, entry)
+}
+
+func (a *app) handleApproveEntry(w http.ResponseWriter, r *http.Request) {
+	claims, err := a.parseAccessTokenFromHeader(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	if claims.UserType != model.UserTypeOrganizer {
+		writeError(w, http.StatusForbidden, "運営者ユーザーのみエントリー承認できます")
+		return
+	}
+
+	entry, err := a.store.ApproveEntry(r.PathValue("id"), claims.UserID)
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrForbidden):
+			writeError(w, http.StatusForbidden, "このエントリーを承認する権限がありません")
+		case errors.Is(err, store.ErrConflict):
+			writeError(w, http.StatusConflict, "既に承認済みです")
+		case errors.Is(err, store.ErrNotFound):
+			writeError(w, http.StatusNotFound, "エントリーが存在しません")
+		default:
+			writeError(w, http.StatusInternalServerError, "サーバーエラー")
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusOK, entry)
+}
+
+func (a *app) handleRejectEntry(w http.ResponseWriter, r *http.Request) {
+	claims, err := a.parseAccessTokenFromHeader(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	if claims.UserType != model.UserTypeOrganizer {
+		writeError(w, http.StatusForbidden, "運営者ユーザーのみエントリー却下できます")
+		return
+	}
+
+	var req rejectEntryRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "リクエスト形式が不正です")
+		return
+	}
+
+	req.RejectionReason = strings.TrimSpace(req.RejectionReason)
+	if req.RejectionReason == "" {
+		writeError(w, http.StatusBadRequest, "rejection_reason は必須です")
+		return
+	}
+
+	entry, err := a.store.RejectEntry(r.PathValue("id"), claims.UserID, req.RejectionReason)
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrForbidden):
+			writeError(w, http.StatusForbidden, "このエントリーを却下する権限がありません")
+		case errors.Is(err, store.ErrNotFound):
+			writeError(w, http.StatusNotFound, "エントリーが存在しません")
+		default:
+			writeError(w, http.StatusInternalServerError, "サーバーエラー")
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusOK, entry)
 }
 
 func (a *app) parseAccessTokenFromHeader(r *http.Request) (*auth.Claims, error) {

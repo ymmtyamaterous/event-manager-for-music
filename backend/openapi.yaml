@@ -15,6 +15,7 @@ tags:
   - name: Users
   - name: Events
   - name: Announcements
+  - name: Entries
 paths:
   /auth/login:
     post:
@@ -439,6 +440,160 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /events/{id}/entries:
+    get:
+      tags: [Entries]
+      summary: イベント別エントリー申請取得
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending, approved, rejected]
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EntryWithBand"
+        "403":
+          description: 権限なし
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: 見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      tags: [Entries]
+      summary: エントリー申請作成
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEntryRequest"
+      responses:
+        "201":
+          description: 作成成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Entry"
+        "403":
+          description: 権限なし
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: 見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: 重複エントリー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /entries/{id}/approve:
+    patch:
+      tags: [Entries]
+      summary: エントリー申請承認
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Entry"
+        "403":
+          description: 権限なし
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: 見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: 競合
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /entries/{id}/reject:
+    patch:
+      tags: [Entries]
+      summary: エントリー申請却下
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RejectEntryRequest"
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Entry"
+        "403":
+          description: 権限なし
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: 見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /reservations/me:
     get:
       tags: [Events]
@@ -755,4 +910,51 @@ components:
         title:
           type: string
         content:
+          type: string
+    Entry:
+      type: object
+      required: [id, event_id, band_id, status, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        event_id:
+          type: string
+        band_id:
+          type: string
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        message:
+          type: string
+          nullable: true
+        rejection_reason:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    EntryWithBand:
+      allOf:
+        - $ref: "#/components/schemas/Entry"
+        - type: object
+          required: [band_name]
+          properties:
+            band_name:
+              type: string
+    CreateEntryRequest:
+      type: object
+      required: [band_id]
+      properties:
+        band_id:
+          type: string
+        message:
+          type: string
+    RejectEntryRequest:
+      type: object
+      required: [rejection_reason]
+      properties:
+        rejection_reason:
           type: string

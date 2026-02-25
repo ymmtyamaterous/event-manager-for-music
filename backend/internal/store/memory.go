@@ -18,6 +18,7 @@ type MemoryStore struct {
 	eventsByID        map[string]model.Event
 	reservationsByID  map[string]model.Reservation
 	announcementsByID map[string]model.Announcement
+	entriesByID       map[string]model.Entry
 }
 
 func NewMemoryStore() *MemoryStore {
@@ -27,6 +28,7 @@ func NewMemoryStore() *MemoryStore {
 		eventsByID:        map[string]model.Event{},
 		reservationsByID:  map[string]model.Reservation{},
 		announcementsByID: map[string]model.Announcement{},
+		entriesByID:       map[string]model.Entry{},
 	}
 	s.seedEvents()
 	return s
@@ -497,6 +499,138 @@ func (s *MemoryStore) DeleteAnnouncement(eventID string, announcementID string, 
 
 	delete(s.announcementsByID, announcementID)
 	return nil
+}
+
+func (s *MemoryStore) ListEntriesByEvent(eventID string, organizerID string, status string) ([]model.EntryWithBand, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	event, exists := s.eventsByID[eventID]
+	if !exists {
+		return nil, ErrNotFound
+	}
+	if event.OrganizerID != organizerID {
+		return nil, ErrForbidden
+	}
+
+	result := make([]model.EntryWithBand, 0)
+	for _, entry := range s.entriesByID {
+		if entry.EventID != eventID {
+			continue
+		}
+		if strings.TrimSpace(status) != "" && string(entry.Status) != strings.TrimSpace(status) {
+			continue
+		}
+		result = append(result, model.EntryWithBand{
+			Entry:    entry,
+			BandName: "(band)",
+		})
+	}
+
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].CreatedAt.After(result[j].CreatedAt)
+	})
+
+	return result, nil
+}
+
+func (s *MemoryStore) CreateEntry(eventID string, userID string, bandID string, message string) (model.Entry, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	user, exists := s.usersByID[userID]
+	if !exists {
+		return model.Entry{}, ErrNotFound
+	}
+	if user.UserType != model.UserTypePerformer {
+		return model.Entry{}, ErrForbidden
+	}
+
+	event, exists := s.eventsByID[eventID]
+	if !exists || event.Status != model.EventStatusPublished {
+		return model.Entry{}, ErrNotFound
+	}
+
+	for _, existing := range s.entriesByID {
+		if existing.EventID == eventID && existing.BandID == strings.TrimSpace(bandID) {
+			return model.Entry{}, ErrConflict
+		}
+	}
+
+	now := nowInTokyo()
+	trimmedMessage := strings.TrimSpace(message)
+	var messagePtr *string
+	if trimmedMessage != "" {
+		messagePtr = &trimmedMessage
+	}
+
+	entry := model.Entry{
+		ID:        uuid.NewString(),
+		EventID:   eventID,
+		BandID:    strings.TrimSpace(bandID),
+		Status:    model.EntryStatusPending,
+		Message:   messagePtr,
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+
+	s.entriesByID[entry.ID] = entry
+	return entry, nil
+}
+
+func (s *MemoryStore) ApproveEntry(entryID string, organizerID string) (model.Entry, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	entry, exists := s.entriesByID[entryID]
+	if !exists {
+		return model.Entry{}, ErrNotFound
+	}
+
+	event, exists := s.eventsByID[entry.EventID]
+	if !exists {
+		return model.Entry{}, ErrNotFound
+	}
+	if event.OrganizerID != organizerID {
+		return model.Entry{}, ErrForbidden
+	}
+
+	entry.Status = model.EntryStatusApproved
+	entry.RejectionReason = nil
+	entry.UpdatedAt = nowInTokyo()
+
+	s.entriesByID[entry.ID] = entry
+	return entry, nil
+}
+
+func (s *MemoryStore) RejectEntry(entryID string, organizerID string, rejectionReason string) (model.Entry, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	entry, exists := s.entriesByID[entryID]
+	if !exists {
+		return model.Entry{}, ErrNotFound
+	}
+
+	event, exists := s.eventsByID[entry.EventID]
+	if !exists {
+		return model.Entry{}, ErrNotFound
+	}
+	if event.OrganizerID != organizerID {
+		return model.Entry{}, ErrForbidden
+	}
+
+	reason := strings.TrimSpace(rejectionReason)
+	if reason == "" {
+		return model.Entry{}, ErrConflict
+	}
+
+	entry.Status = model.EntryStatusRejected
+	entry.RejectionReason = &reason
+	entry.UpdatedAt = nowInTokyo()
+
+	s.entriesByID[entry.ID] = entry
+	return entry, nil
 }
 
 func (s *MemoryStore) seedEvents() {
