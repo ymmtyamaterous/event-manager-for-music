@@ -1,4 +1,4 @@
-import { EventCard, RegisterFormData, Reservation, UserType } from "@/types";
+import { EventCard, OrganizerReservation, RegisterFormData, Reservation, UserType } from "@/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000/api/v1";
 
@@ -47,6 +47,11 @@ type APIReservation = {
   cancelled_at: string | null;
   created_at: string;
   updated_at: string;
+};
+
+type APIReservationWithUser = APIReservation & {
+  user_display_name: string;
+  user_email: string;
 };
 
 type LoginInput = {
@@ -240,6 +245,54 @@ export async function cancelReservation(reservationId: string, accessToken: stri
   return toReservation(response);
 }
 
+export async function listEventReservations(
+  eventId: string,
+  accessToken: string,
+  status?: "reserved" | "cancelled",
+  searchWord?: string,
+): Promise<OrganizerReservation[]> {
+  const params = new URLSearchParams();
+  if (status) {
+    params.set("status", status);
+  }
+  if (searchWord?.trim()) {
+    params.set("search", searchWord.trim());
+  }
+
+  const query = params.toString();
+  const path = query ? `/events/${eventId}/reservations?${query}` : `/events/${eventId}/reservations`;
+
+  const response = await requestAuth<APIReservationWithUser[]>(path, accessToken, {
+    method: "GET",
+  });
+
+  return response.map(toOrganizerReservation);
+}
+
+export async function downloadEventReservationsCsv(
+  eventId: string,
+  accessToken: string,
+  status?: "reserved" | "cancelled",
+  searchWord?: string,
+): Promise<Blob> {
+  const params = new URLSearchParams({ format: "csv" });
+  if (status) {
+    params.set("status", status);
+  }
+  if (searchWord?.trim()) {
+    params.set("search", searchWord.trim());
+  }
+
+  const response = await requestAuthRaw(`/events/${eventId}/reservations?${params.toString()}`, accessToken, {
+    method: "GET",
+    headers: {
+      Accept: "text/csv",
+    },
+  });
+
+  return response.blob();
+}
+
 function toEventCard(event: APIEvent): EventCard {
   return {
     id: event.id,
@@ -264,6 +317,14 @@ function toReservation(reservation: APIReservation): Reservation {
     cancelledAt: reservation.cancelled_at,
     createdAt: reservation.created_at,
     updatedAt: reservation.updated_at,
+  };
+}
+
+function toOrganizerReservation(reservation: APIReservationWithUser): OrganizerReservation {
+  return {
+    ...toReservation(reservation),
+    userDisplayName: reservation.user_display_name,
+    userEmail: reservation.user_email,
   };
 }
 
@@ -296,6 +357,15 @@ async function requestAuth<T>(path: string, accessToken: string, init: RequestIn
 }
 
 async function requestAuthWithoutJson(path: string, accessToken: string, init: RequestInit): Promise<void> {
+  const response = await requestAuthRaw(path, accessToken, init);
+
+  if (!response.ok) {
+    const data = (await response.json().catch(() => null)) as APIErrorResponse | null;
+    throw new Error(data?.error ?? "APIリクエストに失敗しました");
+  }
+}
+
+async function requestAuthRaw(path: string, accessToken: string, init: RequestInit): Promise<Response> {
   const response = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers: {
@@ -310,4 +380,6 @@ async function requestAuthWithoutJson(path: string, accessToken: string, init: R
     const data = (await response.json().catch(() => null)) as APIErrorResponse | null;
     throw new Error(data?.error ?? "APIリクエストに失敗しました");
   }
+
+  return response;
 }

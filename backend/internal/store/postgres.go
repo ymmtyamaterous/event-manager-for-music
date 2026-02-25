@@ -496,6 +496,75 @@ func (s *PostgresStore) ListReservationsByUser(userID string, status string) []m
 	return result
 }
 
+func (s *PostgresStore) ListReservationsByEvent(eventID string, organizerID string, status string, search string) ([]model.ReservationWithUser, error) {
+	var ownerID string
+	err := s.db.QueryRow(`SELECT organizer_id FROM events WHERE id = $1`, eventID).Scan(&ownerID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	if ownerID != organizerID {
+		return nil, ErrForbidden
+	}
+
+	base := `
+		SELECT
+			r.id,
+			r.event_id,
+			r.user_id,
+			r.reservation_number,
+			r.status,
+			r.reserved_at,
+			r.cancelled_at,
+			r.created_at,
+			r.updated_at,
+			u.display_name,
+			u.email
+		FROM reservations r
+		INNER JOIN users u ON u.id = r.user_id
+		WHERE r.event_id = $1
+	`
+
+	args := []any{eventID}
+	idx := 2
+
+	if strings.TrimSpace(status) != "" {
+		base += fmt.Sprintf(" AND r.status = $%d", idx)
+		args = append(args, strings.TrimSpace(status))
+		idx++
+	}
+
+	if strings.TrimSpace(search) != "" {
+		base += fmt.Sprintf(" AND (r.reservation_number ILIKE $%d OR u.display_name ILIKE $%d OR u.email ILIKE $%d)", idx, idx, idx)
+		args = append(args, "%"+strings.TrimSpace(search)+"%")
+		idx++
+	}
+
+	base += " ORDER BY r.reserved_at DESC"
+
+	rows, err := s.db.Query(base, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result := make([]model.ReservationWithUser, 0)
+	for rows.Next() {
+		item, ok := scanReservationWithUser(rows)
+		if ok {
+			result = append(result, item)
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
 func (s *PostgresStore) CancelReservation(userID string, reservationID string) (model.Reservation, error) {
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -543,6 +612,10 @@ type eventScanner interface {
 }
 
 type reservationScanner interface {
+	Scan(dest ...any) error
+}
+
+type reservationWithUserScanner interface {
 	Scan(dest ...any) error
 }
 
@@ -643,6 +716,37 @@ func scanReservation(scanner reservationScanner) (model.Reservation, bool) {
 	}
 
 	return reservation, true
+}
+
+func scanReservationWithUser(scanner reservationWithUserScanner) (model.ReservationWithUser, bool) {
+	var item model.ReservationWithUser
+	var status string
+	var cancelledAt sql.NullTime
+
+	err := scanner.Scan(
+		&item.ID,
+		&item.EventID,
+		&item.UserID,
+		&item.ReservationNumber,
+		&status,
+		&item.ReservedAt,
+		&cancelledAt,
+		&item.CreatedAt,
+		&item.UpdatedAt,
+		&item.UserDisplayName,
+		&item.UserEmail,
+	)
+	if errors.Is(err, sql.ErrNoRows) || err != nil {
+		return model.ReservationWithUser{}, false
+	}
+
+	item.Status = model.ReservationStatus(status)
+	if cancelledAt.Valid {
+		v := cancelledAt.Time
+		item.CancelledAt = &v
+	}
+
+	return item, true
 }
 
 func stringOrNil(value *string) any {

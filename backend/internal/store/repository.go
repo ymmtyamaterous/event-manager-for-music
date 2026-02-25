@@ -14,5 +14,6 @@ type Repository interface {
 	DeleteEvent(eventID string, organizerID string) error
 	CreateReservation(userID string, eventID string) (model.Reservation, error)
 	ListReservationsByUser(userID string, status string) []model.Reservation
+	ListReservationsByEvent(eventID string, organizerID string, status string, search string) ([]model.ReservationWithUser, error)
 	CancelReservation(userID string, reservationID string) (model.Reservation, error)
 }

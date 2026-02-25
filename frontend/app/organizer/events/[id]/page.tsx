@@ -138,7 +138,14 @@ export default function OrganizerEventDetailPage({ params }: OrganizerEventDetai
 
       <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <h2 className="text-lg font-bold text-gray-900">管理リンク</h2>
-        <p className="mt-2 text-sm text-gray-600">エントリー申請管理・お知らせ管理・予約者一覧は次フェーズで追加します。</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Link
+            href={`/organizer/events/${event.id}/reservations`}
+            className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold py-2 px-3 rounded-lg transition-colors"
+          >
+            予約者一覧
+          </Link>
+        </div>
       </section>
 
       {isDeleteModalOpen && (

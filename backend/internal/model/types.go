@@ -99,3 +99,9 @@ type Reservation struct {
 	CreatedAt         time.Time         `json:"created_at"`
 	UpdatedAt         time.Time         `json:"updated_at"`
 }
+
+type ReservationWithUser struct {
+	Reservation
+	UserDisplayName string `json:"user_display_name"`
+	UserEmail       string `json:"user_email"`
+}

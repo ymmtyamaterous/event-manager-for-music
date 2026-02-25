@@ -1,12 +1,15 @@
 package http
 
 import (
+	"bytes"
+	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/ymmtyamaterous/event-manager-for-music-api/internal/auth"
 	"github.com/ymmtyamaterous/event-manager-for-music-api/internal/config"
@@ -129,6 +132,7 @@ func NewServer(cfg config.Config) *Server {
 	mux.HandleFunc("PATCH /api/v1/events/{id}", app.handleUpdateEvent)
 	mux.HandleFunc("DELETE /api/v1/events/{id}", app.handleDeleteEvent)
 	mux.HandleFunc("POST /api/v1/events/{id}/reservations", app.handleCreateReservation)
+	mux.HandleFunc("GET /api/v1/events/{id}/reservations", app.handleListEventReservations)
 	mux.HandleFunc("GET /api/v1/reservations/me", app.handleListMyReservations)
 	mux.HandleFunc("PATCH /api/v1/reservations/{id}/cancel", app.handleCancelReservation)
 
@@ -532,6 +536,43 @@ func (a *app) handleCreateReservation(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, reservation)
 }
 
+func (a *app) handleListEventReservations(w http.ResponseWriter, r *http.Request) {
+	claims, err := a.parseAccessTokenFromHeader(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	if claims.UserType != model.UserTypeOrganizer {
+		writeError(w, http.StatusForbidden, "運営者ユーザーのみ予約者一覧を参照できます")
+		return
+	}
+
+	eventID := r.PathValue("id")
+	status := strings.TrimSpace(r.URL.Query().Get("status"))
+	search := strings.TrimSpace(r.URL.Query().Get("search"))
+	format := strings.TrimSpace(r.URL.Query().Get("format"))
+
+	items, err := a.store.ListReservationsByEvent(eventID, claims.UserID, status, search)
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrForbidden):
+			writeError(w, http.StatusForbidden, "このイベントの予約者一覧を参照する権限がありません")
+		case errors.Is(err, store.ErrNotFound):
+			writeError(w, http.StatusNotFound, "イベントが存在しません")
+		default:
+			writeError(w, http.StatusInternalServerError, "サーバーエラー")
+		}
+		return
+	}
+
+	if strings.EqualFold(format, "csv") {
+		writeReservationsCSV(w, items)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, items)
+}
+
 func (a *app) handleListMyReservations(w http.ResponseWriter, r *http.Request) {
 	claims, err := a.parseAccessTokenFromHeader(r)
 	if err != nil {
@@ -615,6 +656,29 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 
 func writeError(w http.ResponseWriter, status int, message string) {
 	writeJSON(w, status, errorResponse{Error: message})
+}
+
+func writeReservationsCSV(w http.ResponseWriter, rows []model.ReservationWithUser) {
+	var buf bytes.Buffer
+	buf.Write([]byte{0xEF, 0xBB, 0xBF})
+
+	cw := csv.NewWriter(&buf)
+	_ = cw.Write([]string{"予約番号", "予約者名", "メールアドレス", "ステータス", "予約日時"})
+	for _, row := range rows {
+		_ = cw.Write([]string{
+			row.ReservationNumber,
+			row.UserDisplayName,
+			row.UserEmail,
+			string(row.Status),
+			row.ReservedAt.Format(time.RFC3339),
+		})
+	}
+	cw.Flush()
+
+	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
+	w.Header().Set("Content-Disposition", "attachment; filename=reservations.csv")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(buf.Bytes())
 }
 
 func withCORS(next http.Handler, allowedOrigins []string) http.Handler {

@@ -329,6 +329,55 @@ func (s *MemoryStore) ListReservationsByUser(userID string, status string) []mod
 	return result
 }
 
+func (s *MemoryStore) ListReservationsByEvent(eventID string, organizerID string, status string, search string) ([]model.ReservationWithUser, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	event, exists := s.eventsByID[eventID]
+	if !exists {
+		return nil, ErrNotFound
+	}
+	if event.OrganizerID != organizerID {
+		return nil, ErrForbidden
+	}
+
+	searchLower := strings.ToLower(strings.TrimSpace(search))
+	result := make([]model.ReservationWithUser, 0)
+
+	for _, reservation := range s.reservationsByID {
+		if reservation.EventID != eventID {
+			continue
+		}
+		if status != "" && string(reservation.Status) != status {
+			continue
+		}
+
+		user, ok := s.usersByID[reservation.UserID]
+		if !ok {
+			continue
+		}
+
+		if searchLower != "" {
+			target := strings.ToLower(reservation.ReservationNumber + " " + user.DisplayName + " " + user.Email)
+			if !strings.Contains(target, searchLower) {
+				continue
+			}
+		}
+
+		result = append(result, model.ReservationWithUser{
+			Reservation:     reservation,
+			UserDisplayName: user.DisplayName,
+			UserEmail:       user.Email,
+		})
+	}
+
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].ReservedAt.After(result[j].ReservedAt)
+	})
+
+	return result, nil
+}
+
 func (s *MemoryStore) CancelReservation(userID string, reservationID string) (model.Reservation, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

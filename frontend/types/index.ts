@@ -42,3 +42,8 @@ export type Reservation = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type OrganizerReservation = Reservation & {
+  userDisplayName: string;
+  userEmail: string;
+};

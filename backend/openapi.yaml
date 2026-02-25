@@ -231,6 +231,43 @@ paths:
         "204":
           description: 削除成功
   /events/{id}/reservations:
+    get:
+      tags: [Events]
+      summary: イベント予約者一覧取得
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [reserved, cancelled]
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: format
+          schema:
+            type: string
+            enum: [json, csv]
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReservationWithUser"
+            text/csv:
+              schema:
+                type: string
     post:
       tags: [Events]
       summary: イベント予約
@@ -544,3 +581,14 @@ components:
         updated_at:
           type: string
           format: date-time
+    ReservationWithUser:
+      allOf:
+        - $ref: "#/components/schemas/Reservation"
+        - type: object
+          required: [user_display_name, user_email]
+          properties:
+            user_display_name:
+              type: string
+            user_email:
+              type: string
+              format: email
