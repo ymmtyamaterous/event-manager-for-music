@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import { APIUser, getMe, resolveAssetUrl, updateMe, uploadProfileImage } from "@/lib/api";
 import { useAuth } from "@/lib/useAuth";
 
@@ -25,6 +25,7 @@ export default function ProfilePage() {
   const [profileImageUrl, setProfileImageUrl] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const profileImageInputRef = useRef<HTMLInputElement>(null);
 
   const { accessToken, isReady } = useAuth();
 
@@ -143,7 +144,22 @@ export default function ProfilePage() {
             )}
           </div>
           <div className="flex-1 space-y-2">
-            <input type="file" accept="image/*" onChange={handleSelectProfileImage} className="block w-full text-sm text-gray-700" />
+            <input ref={profileImageInputRef} type="file" accept="image/*" onChange={handleSelectProfileImage} className="hidden" />
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => profileImageInputRef.current?.click()}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 active:bg-gray-100"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                画像を選択
+              </button>
+              <span className="max-w-[160px] truncate text-sm text-gray-500">
+                {selectedImageFile ? selectedImageFile.name : "ファイル未選択"}
+              </span>
+            </div>
             <button
               type="button"
               onClick={handleUploadProfileImage}

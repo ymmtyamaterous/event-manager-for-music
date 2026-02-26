@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import { getEvent, resolveAssetUrl, updateEvent, uploadEventFlyerImage } from "@/lib/api";
 import { useAuth } from "@/lib/useAuth";
 
@@ -51,6 +51,7 @@ export default function OrganizerEventEditPage({ params }: OrganizerEventEditPag
   const [isUploadingFlyer, setIsUploadingFlyer] = useState(false);
   const [selectedFlyerFile, setSelectedFlyerFile] = useState<File | null>(null);
   const [flyerPreviewUrl, setFlyerPreviewUrl] = useState("");
+  const flyerInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const loadParams = async () => {
@@ -187,12 +188,27 @@ export default function OrganizerEventEditPage({ params }: OrganizerEventEditPag
             )}
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <input type="file" accept="image/*" onChange={handleSelectFlyerFile} className="block w-full text-sm text-gray-700" />
+            <input ref={flyerInputRef} type="file" accept="image/*" onChange={handleSelectFlyerFile} className="hidden" />
+            <div className="flex flex-1 items-center gap-2 min-w-0">
+              <button
+                type="button"
+                onClick={() => flyerInputRef.current?.click()}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 active:bg-gray-100"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                画像を選択
+              </button>
+              <span className="min-w-0 truncate text-sm text-gray-500">
+                {selectedFlyerFile ? selectedFlyerFile.name : "ファイル未選択"}
+              </span>
+            </div>
             <button
               type="button"
               onClick={handleUploadFlyer}
               disabled={!selectedFlyerFile || isUploadingFlyer}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-70"
+              className="shrink-0 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-70"
             >
               {isUploadingFlyer ? "アップロード中..." : "フライヤーをアップロード"}
             </button>

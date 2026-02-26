@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   createBand,
   createEntry,
@@ -37,6 +37,7 @@ export default function PerformerPage() {
   const [entryMessage, setEntryMessage] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const newBandImageInputRef = useRef<HTMLInputElement>(null);
 
   const { accessToken, user, isReady } = useAuth();
 
@@ -290,12 +291,28 @@ export default function PerformerPage() {
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => setNewBandImage(e.target.files?.[0] ?? null)}
-            className="w-full text-sm text-gray-700"
-          />
+          <div className="flex items-center gap-2">
+            <input
+              ref={newBandImageInputRef}
+              type="file"
+              accept="image/*"
+              onChange={(e) => setNewBandImage(e.target.files?.[0] ?? null)}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => newBandImageInputRef.current?.click()}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 active:bg-gray-100"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              バンド画像を選択
+            </button>
+            <span className="max-w-45 truncate text-sm text-gray-500">
+              {newBandImage ? newBandImage.name : "ファイル未選択"}
+            </span>
+          </div>
           <textarea
             value={memberDraft}
             onChange={(e) => setMemberDraft(e.target.value)}

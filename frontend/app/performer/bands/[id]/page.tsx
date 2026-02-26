@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   createSetlist,
   listBandMembers,
@@ -37,6 +37,7 @@ export default function PerformerBandEditPage({ params }: BandEditPageProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const bandImageInputRef = useRef<HTMLInputElement>(null);
 
   const { accessToken, user, isReady } = useAuth();
 
@@ -278,7 +279,20 @@ export default function PerformerBandEditPage({ params }: BandEditPageProps) {
             <div className="flex h-full w-full items-center justify-center text-xs text-gray-500">未設定</div>
           )}
         </div>
-        <input type="file" accept="image/*" onChange={(e) => handleUploadBandImage(e.target.files?.[0] ?? null)} className="text-sm" />
+        <div className="flex items-center gap-2">
+          <input ref={bandImageInputRef} type="file" accept="image/*" onChange={(e) => handleUploadBandImage(e.target.files?.[0] ?? null)} className="hidden" />
+          <button
+            type="button"
+            onClick={() => bandImageInputRef.current?.click()}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 active:bg-gray-100"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            画像を変更
+          </button>
+          <span className="text-xs text-gray-500">選択後すぐに反映されます</span>
+        </div>
         <input value={name} onChange={(e) => setName(e.target.value)} className="w-full border rounded-lg px-3 py-2" placeholder="バンド名" />
         <input value={genre} onChange={(e) => setGenre(e.target.value)} className="w-full border rounded-lg px-3 py-2" placeholder="ジャンル" />
         <textarea value={description} onChange={(e) => setDescription(e.target.value)} className="w-full min-h-24 border rounded-lg px-3 py-2" placeholder="説明" />
