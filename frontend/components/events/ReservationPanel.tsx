@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { createReservation } from "@/lib/api";
 import { APIUser } from "@/lib/api";
 
@@ -12,19 +12,26 @@ type ReservationPanelProps = {
 export function ReservationPanel({ eventId }: ReservationPanelProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [accessToken, setAccessToken] = useState("");
-  const [user, setUser] = useState<APIUser | null>(null);
-
-  useEffect(() => {
-    setAccessToken(localStorage.getItem("access_token") ?? "");
-    const rawUser = localStorage.getItem("user");
-    if (!rawUser) return;
-    try {
-      setUser(JSON.parse(rawUser) as APIUser);
-    } catch {
-      // ignore
+  const [accessToken] = useState(() => {
+    if (typeof window === "undefined") {
+      return "";
     }
-  }, []);
+    return localStorage.getItem("access_token") ?? "";
+  });
+  const [user] = useState<APIUser | null>(() => {
+    if (typeof window === "undefined") {
+      return null;
+    }
+    const rawUser = localStorage.getItem("user");
+    if (!rawUser) {
+      return null;
+    }
+    try {
+      return JSON.parse(rawUser) as APIUser;
+    } catch {
+      return null;
+    }
+  });
 
   const handleReserve = async () => {
     if (!accessToken) {

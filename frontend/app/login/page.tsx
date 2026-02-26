@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { LoginFormData } from "@/types";
 import { login } from "@/lib/api";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 export default function LoginPage() {
   const [form, setForm] = useState<LoginFormData>({ email: "", password: "" });
@@ -57,13 +58,11 @@ export default function LoginPage() {
           <label htmlFor="password" className="mb-1 block text-sm font-semibold text-gray-700">
             パスワード
           </label>
-          <input
+          <PasswordInput
             id="password"
-            type="password"
             required
             value={form.password}
             onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 

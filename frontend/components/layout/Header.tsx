@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { APIUser } from "@/lib/api";
 
@@ -31,18 +31,22 @@ function getRoleNavItems(user: APIUser | null): NavItem[] {
 
 export function Header() {
   const router = useRouter();
-  const [user, setUser] = useState<APIUser | null>(null);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  useEffect(() => {
-    const raw = localStorage.getItem("user");
-    if (!raw) return;
-    try {
-      setUser(JSON.parse(raw) as APIUser);
-    } catch {
-      // ignore
+  const [user, setUser] = useState<APIUser | null>(() => {
+    if (typeof window === "undefined") {
+      return null;
     }
-  }, []);
+    const raw = localStorage.getItem("user");
+    if (!raw) {
+      return null;
+    }
+    try {
+      return JSON.parse(raw) as APIUser;
+    } catch {
+      return null;
+    }
+  });
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   const navItems = useMemo(() => getRoleNavItems(user), [user]);
 
@@ -51,8 +55,17 @@ export function Header() {
     localStorage.removeItem("refresh_token");
     localStorage.removeItem("user");
     setUser(null);
+    setIsLogoutModalOpen(false);
     setIsMobileMenuOpen(false);
     router.push("/");
+  };
+
+  const openLogoutModal = () => {
+    setIsLogoutModalOpen(true);
+  };
+
+  const closeLogoutModal = () => {
+    setIsLogoutModalOpen(false);
   };
 
   const closeMobileMenu = () => {
@@ -87,7 +100,7 @@ export function Header() {
           {user ? (
             <button
               type="button"
-              onClick={handleLogout}
+              onClick={openLogoutModal}
               className="rounded-lg bg-gray-800 px-4 py-2 font-semibold text-white transition-colors hover:bg-gray-900"
             >
               ログアウト
@@ -111,7 +124,7 @@ export function Header() {
             {user ? (
               <button
                 type="button"
-                onClick={handleLogout}
+                onClick={openLogoutModal}
                 className="rounded-lg bg-gray-800 px-4 py-2 text-left font-semibold text-white transition-colors hover:bg-gray-900"
               >
                 ログアウト
@@ -126,6 +139,31 @@ export function Header() {
               </Link>
             )}
           </nav>
+        </div>
+      )}
+
+      {isLogoutModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={closeLogoutModal}>
+          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-bold text-gray-900">ログアウト確認</h2>
+            <p className="mt-2 text-sm text-gray-600">ログアウトしてよろしいですか？</p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeLogoutModal}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="rounded-lg bg-gray-800 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-900"
+              >
+                ログアウト
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </header>

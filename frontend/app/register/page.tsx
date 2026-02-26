@@ -3,6 +3,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import { RegisterFormData } from "@/types";
 import { register } from "@/lib/api";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 const initialForm: RegisterFormData = {
   userType: "audience",
@@ -154,23 +155,19 @@ export default function RegisterPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className="mb-1 block text-sm font-semibold text-gray-700">パスワード</label>
-            <input
-              type="password"
+            <PasswordInput
               required
               value={form.password}
               onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             {passwordError && <p className="mt-1 text-xs text-red-600">{passwordError}</p>}
           </div>
           <div>
             <label className="mb-1 block text-sm font-semibold text-gray-700">パスワード（確認）</label>
-            <input
-              type="password"
+            <PasswordInput
               required
               value={form.confirmPassword}
               onChange={(e) => setForm((prev) => ({ ...prev, confirmPassword: e.target.value }))}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             {confirmError && <p className="mt-1 text-xs text-red-600">{confirmError}</p>}
           </div>
