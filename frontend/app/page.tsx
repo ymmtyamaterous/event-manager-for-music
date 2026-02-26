@@ -9,6 +9,12 @@ export default function Home() {
   const [events, setEvents] = useState<EventCard[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [hasLoggedInUser] = useState(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+    return Boolean(localStorage.getItem("user"));
+  });
 
   useEffect(() => {
     let isActive = true;
@@ -54,12 +60,14 @@ export default function Home() {
           >
             イベントを探す
           </Link>
-          <Link
-            href="/register"
-            className="border border-white/70 px-5 py-2.5 font-semibold rounded-lg hover:bg-white/10 transition-colors"
-          >
-            新規登録
-          </Link>
+          {!hasLoggedInUser && (
+            <Link
+              href="/register"
+              className="border border-white/70 px-5 py-2.5 font-semibold rounded-lg hover:bg-white/10 transition-colors"
+            >
+              新規登録
+            </Link>
+          )}
         </div>
       </section>
 
