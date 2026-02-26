@@ -40,6 +40,7 @@ type APIEvent = {
   id: string;
   title: string;
   description: string | null;
+  flyer_image_path: string | null;
   venue_name: string;
   venue_address: string;
   event_date: string;
@@ -260,6 +261,28 @@ export async function getEvent(id: string): Promise<EventCard> {
   });
 
   return toEventCard(response);
+}
+
+export async function uploadEventFlyerImage(eventId: string, accessToken: string, file: File): Promise<EventCard> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch(`${API_BASE}/events/${eventId}/flyer-image`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: formData,
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const data = (await response.json().catch(() => null)) as APIErrorResponse | null;
+    throw new Error(data?.error ?? "APIリクエストに失敗しました");
+  }
+
+  const data = (await response.json()) as APIEvent;
+  return toEventCard(data);
 }
 
 export async function createReservation(eventId: string, accessToken: string): Promise<Reservation> {
@@ -598,6 +621,7 @@ function toEventCard(event: APIEvent): EventCard {
     id: event.id,
     title: event.title,
     description: event.description ?? "",
+    flyerImagePath: event.flyer_image_path,
     venueName: event.venue_name,
     venueAddress: event.venue_address,
     eventDate: event.event_date,

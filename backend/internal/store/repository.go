@@ -17,6 +17,7 @@ type Repository interface {
 	GetEventByID(id string) (model.Event, bool)
 	CreateEvent(input model.CreateEventInput) (model.Event, error)
 	UpdateEvent(input model.UpdateEventInput) (model.Event, error)
+	UpdateEventFlyerImage(eventID string, organizerID string, path string) (model.Event, error)
 	DeleteEvent(eventID string, organizerID string) error
 	CreateReservation(userID string, eventID string) (model.Reservation, error)
 	ListReservationsByUser(userID string, status string) []model.Reservation

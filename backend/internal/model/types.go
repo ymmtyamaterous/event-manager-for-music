@@ -43,52 +43,55 @@ const (
 )
 
 type Event struct {
-	ID            string      `json:"id"`
-	OrganizerID   string      `json:"organizer_id"`
-	Title         string      `json:"title"`
-	Description   *string     `json:"description"`
-	VenueName     string      `json:"venue_name"`
-	VenueAddress  string      `json:"venue_address"`
-	EventDate     string      `json:"event_date"`
-	DoorsOpenTime string      `json:"doors_open_time"`
-	StartTime     string      `json:"start_time"`
-	EndTime       *string     `json:"end_time"`
-	TicketPrice   *int        `json:"ticket_price"`
-	Capacity      *int        `json:"capacity"`
-	Status        EventStatus `json:"status"`
-	CreatedAt     time.Time   `json:"created_at"`
-	UpdatedAt     time.Time   `json:"updated_at"`
+	ID             string      `json:"id"`
+	OrganizerID    string      `json:"organizer_id"`
+	Title          string      `json:"title"`
+	Description    *string     `json:"description"`
+	FlyerImagePath *string     `json:"flyer_image_path"`
+	VenueName      string      `json:"venue_name"`
+	VenueAddress   string      `json:"venue_address"`
+	EventDate      string      `json:"event_date"`
+	DoorsOpenTime  string      `json:"doors_open_time"`
+	StartTime      string      `json:"start_time"`
+	EndTime        *string     `json:"end_time"`
+	TicketPrice    *int        `json:"ticket_price"`
+	Capacity       *int        `json:"capacity"`
+	Status         EventStatus `json:"status"`
+	CreatedAt      time.Time   `json:"created_at"`
+	UpdatedAt      time.Time   `json:"updated_at"`
 }
 
 type CreateEventInput struct {
-	OrganizerID   string
-	Title         string
-	Description   *string
-	VenueName     string
-	VenueAddress  string
-	EventDate     string
-	DoorsOpenTime string
-	StartTime     string
-	EndTime       *string
-	TicketPrice   *int
-	Capacity      *int
-	Status        EventStatus
+	OrganizerID    string
+	Title          string
+	Description    *string
+	FlyerImagePath *string
+	VenueName      string
+	VenueAddress   string
+	EventDate      string
+	DoorsOpenTime  string
+	StartTime      string
+	EndTime        *string
+	TicketPrice    *int
+	Capacity       *int
+	Status         EventStatus
 }
 
 type UpdateEventInput struct {
-	ID            string
-	OrganizerID   string
-	Title         *string
-	Description   *string
-	VenueName     *string
-	VenueAddress  *string
-	EventDate     *string
-	DoorsOpenTime *string
-	StartTime     *string
-	EndTime       *string
-	TicketPrice   *int
-	Capacity      *int
-	Status        *EventStatus
+	ID             string
+	OrganizerID    string
+	Title          *string
+	Description    *string
+	FlyerImagePath *string
+	VenueName      *string
+	VenueAddress   *string
+	EventDate      *string
+	DoorsOpenTime  *string
+	StartTime      *string
+	EndTime        *string
+	TicketPrice    *int
+	Capacity       *int
+	Status         *EventStatus
 }
 
 type ReservationStatus string

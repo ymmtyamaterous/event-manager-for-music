@@ -333,21 +333,22 @@ func (s *MemoryStore) CreateEvent(input model.CreateEventInput) (model.Event, er
 
 	now := nowInTokyo()
 	event := model.Event{
-		ID:            uuid.NewString(),
-		OrganizerID:   input.OrganizerID,
-		Title:         input.Title,
-		Description:   input.Description,
-		VenueName:     input.VenueName,
-		VenueAddress:  input.VenueAddress,
-		EventDate:     input.EventDate,
-		DoorsOpenTime: input.DoorsOpenTime,
-		StartTime:     input.StartTime,
-		EndTime:       input.EndTime,
-		TicketPrice:   input.TicketPrice,
-		Capacity:      input.Capacity,
-		Status:        input.Status,
-		CreatedAt:     now,
-		UpdatedAt:     now,
+		ID:             uuid.NewString(),
+		OrganizerID:    input.OrganizerID,
+		Title:          input.Title,
+		Description:    input.Description,
+		FlyerImagePath: input.FlyerImagePath,
+		VenueName:      input.VenueName,
+		VenueAddress:   input.VenueAddress,
+		EventDate:      input.EventDate,
+		DoorsOpenTime:  input.DoorsOpenTime,
+		StartTime:      input.StartTime,
+		EndTime:        input.EndTime,
+		TicketPrice:    input.TicketPrice,
+		Capacity:       input.Capacity,
+		Status:         input.Status,
+		CreatedAt:      now,
+		UpdatedAt:      now,
 	}
 
 	s.eventsByID[event.ID] = event
@@ -372,6 +373,14 @@ func (s *MemoryStore) UpdateEvent(input model.UpdateEventInput) (model.Event, er
 	if input.Description != nil {
 		v := strings.TrimSpace(*input.Description)
 		event.Description = &v
+	}
+	if input.FlyerImagePath != nil {
+		v := strings.TrimSpace(*input.FlyerImagePath)
+		if v == "" {
+			event.FlyerImagePath = nil
+		} else {
+			event.FlyerImagePath = &v
+		}
 	}
 	if input.VenueName != nil {
 		event.VenueName = strings.TrimSpace(*input.VenueName)
@@ -406,6 +415,30 @@ func (s *MemoryStore) UpdateEvent(input model.UpdateEventInput) (model.Event, er
 
 	event.UpdatedAt = nowInTokyo()
 	s.eventsByID[event.ID] = event
+
+	return event, nil
+}
+
+func (s *MemoryStore) UpdateEventFlyerImage(eventID string, organizerID string, path string) (model.Event, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	event, exists := s.eventsByID[eventID]
+	if !exists {
+		return model.Event{}, ErrNotFound
+	}
+	if event.OrganizerID != organizerID {
+		return model.Event{}, ErrForbidden
+	}
+
+	trimmedPath := strings.TrimSpace(path)
+	if trimmedPath == "" {
+		return model.Event{}, ErrConflict
+	}
+
+	event.FlyerImagePath = &trimmedPath
+	event.UpdatedAt = nowInTokyo()
+	s.eventsByID[eventID] = event
 
 	return event, nil
 }

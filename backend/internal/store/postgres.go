@@ -472,7 +472,7 @@ func (s *PostgresStore) DeletePerformance(eventID string, performanceID string, 
 
 func (s *PostgresStore) ListEvents(status string, search string, organizerID string) []model.Event {
 	base := `
-		SELECT id, organizer_id, title, description, venue_name, venue_address, event_date, doors_open_time, start_time, end_time, ticket_price, capacity, status, created_at, updated_at
+		SELECT id, organizer_id, title, description, flyer_image_path, venue_name, venue_address, event_date, doors_open_time, start_time, end_time, ticket_price, capacity, status, created_at, updated_at
 		FROM events
 		WHERE 1=1
 	`
@@ -520,11 +520,11 @@ func (s *PostgresStore) ListEvents(status string, search string, organizerID str
 func (s *PostgresStore) CreateEvent(input model.CreateEventInput) (model.Event, error) {
 	const q = `
 		INSERT INTO events (
-			organizer_id, title, description, venue_name, venue_address, event_date, doors_open_time, start_time, end_time, ticket_price, capacity, status
+			organizer_id, title, description, flyer_image_path, venue_name, venue_address, event_date, doors_open_time, start_time, end_time, ticket_price, capacity, status
 		) VALUES (
-			$1, $2, $3, $4, $5, $6::date, $7::time, $8::time, $9::time, $10, $11, $12
+			$1, $2, $3, $4, $5, $6, $7::date, $8::time, $9::time, $10::time, $11, $12, $13
 		)
-		RETURNING id, organizer_id, title, description, venue_name, venue_address, event_date, doors_open_time, start_time, end_time, ticket_price, capacity, status, created_at, updated_at
+		RETURNING id, organizer_id, title, description, flyer_image_path, venue_name, venue_address, event_date, doors_open_time, start_time, end_time, ticket_price, capacity, status, created_at, updated_at
 	`
 
 	event, err := scanEvent(s.db.QueryRow(
@@ -532,6 +532,7 @@ func (s *PostgresStore) CreateEvent(input model.CreateEventInput) (model.Event, 
 		input.OrganizerID,
 		input.Title,
 		input.Description,
+		input.FlyerImagePath,
 		input.VenueName,
 		input.VenueAddress,
 		input.EventDate,
@@ -573,18 +574,19 @@ func (s *PostgresStore) UpdateEvent(input model.UpdateEventInput) (model.Event, 
 		SET
 			title = COALESCE(NULLIF($2, ''), title),
 			description = CASE WHEN $3 IS NULL THEN description ELSE $3 END,
-			venue_name = COALESCE(NULLIF($4, ''), venue_name),
-			venue_address = COALESCE(NULLIF($5, ''), venue_address),
-			event_date = CASE WHEN $6 IS NULL THEN event_date ELSE $6::date END,
-			doors_open_time = CASE WHEN $7 IS NULL THEN doors_open_time ELSE $7::time END,
-			start_time = CASE WHEN $8 IS NULL THEN start_time ELSE $8::time END,
-			end_time = CASE WHEN $9 IS NULL THEN end_time ELSE $9::time END,
-			ticket_price = COALESCE($10, ticket_price),
-			capacity = COALESCE($11, capacity),
-			status = CASE WHEN $12 IS NULL THEN status ELSE $12::event_status END,
+			flyer_image_path = CASE WHEN $4 IS NULL THEN flyer_image_path ELSE $4 END,
+			venue_name = COALESCE(NULLIF($5, ''), venue_name),
+			venue_address = COALESCE(NULLIF($6, ''), venue_address),
+			event_date = CASE WHEN $7 IS NULL THEN event_date ELSE $7::date END,
+			doors_open_time = CASE WHEN $8 IS NULL THEN doors_open_time ELSE $8::time END,
+			start_time = CASE WHEN $9 IS NULL THEN start_time ELSE $9::time END,
+			end_time = CASE WHEN $10 IS NULL THEN end_time ELSE $10::time END,
+			ticket_price = COALESCE($11, ticket_price),
+			capacity = COALESCE($12, capacity),
+			status = CASE WHEN $13 IS NULL THEN status ELSE $13::event_status END,
 			updated_at = NOW()
 		WHERE id = $1
-		RETURNING id, organizer_id, title, description, venue_name, venue_address, event_date, doors_open_time, start_time, end_time, ticket_price, capacity, status, created_at, updated_at
+		RETURNING id, organizer_id, title, description, flyer_image_path, venue_name, venue_address, event_date, doors_open_time, start_time, end_time, ticket_price, capacity, status, created_at, updated_at
 	`
 
 	event, err := scanEvent(s.db.QueryRow(
@@ -592,6 +594,7 @@ func (s *PostgresStore) UpdateEvent(input model.UpdateEventInput) (model.Event, 
 		input.ID,
 		stringOrNil(input.Title),
 		stringOrNil(input.Description),
+		stringOrNil(input.FlyerImagePath),
 		stringOrNil(input.VenueName),
 		stringOrNil(input.VenueAddress),
 		stringOrNil(input.EventDate),
@@ -605,6 +608,35 @@ func (s *PostgresStore) UpdateEvent(input model.UpdateEventInput) (model.Event, 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return model.Event{}, ErrNotFound
+		}
+		return model.Event{}, err
+	}
+
+	return event, nil
+}
+
+func (s *PostgresStore) UpdateEventFlyerImage(eventID string, organizerID string, path string) (model.Event, error) {
+	trimmedPath := strings.TrimSpace(path)
+	if trimmedPath == "" {
+		return model.Event{}, ErrConflict
+	}
+
+	const q = `
+		UPDATE events
+		SET
+			flyer_image_path = $3,
+			updated_at = NOW()
+		WHERE id = $1 AND organizer_id = $2
+		RETURNING id, organizer_id, title, description, flyer_image_path, venue_name, venue_address, event_date, doors_open_time, start_time, end_time, ticket_price, capacity, status, created_at, updated_at
+	`
+
+	event, err := scanEvent(s.db.QueryRow(q, eventID, organizerID, trimmedPath))
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			if _, exists := s.GetEventByID(eventID); !exists {
+				return model.Event{}, ErrNotFound
+			}
+			return model.Event{}, ErrForbidden
 		}
 		return model.Event{}, err
 	}
@@ -634,7 +666,7 @@ func (s *PostgresStore) DeleteEvent(eventID string, organizerID string) error {
 
 func (s *PostgresStore) GetEventByID(id string) (model.Event, bool) {
 	const q = `
-		SELECT id, organizer_id, title, description, venue_name, venue_address, event_date, doors_open_time, start_time, end_time, ticket_price, capacity, status, created_at, updated_at
+		SELECT id, organizer_id, title, description, flyer_image_path, venue_name, venue_address, event_date, doors_open_time, start_time, end_time, ticket_price, capacity, status, created_at, updated_at
 		FROM events
 		WHERE id = $1
 	`
@@ -1358,6 +1390,7 @@ type performanceScanner interface {
 func scanEvent(scanner eventScanner) (model.Event, error) {
 	var event model.Event
 	var description sql.NullString
+	var flyerImagePath sql.NullString
 	var eventDate any
 	var doorsOpenTime any
 	var startTime any
@@ -1371,6 +1404,7 @@ func scanEvent(scanner eventScanner) (model.Event, error) {
 		&event.OrganizerID,
 		&event.Title,
 		&description,
+		&flyerImagePath,
 		&event.VenueName,
 		&event.VenueAddress,
 		&eventDate,
@@ -1390,6 +1424,10 @@ func scanEvent(scanner eventScanner) (model.Event, error) {
 	if description.Valid {
 		v := description.String
 		event.Description = &v
+	}
+	if flyerImagePath.Valid {
+		v := flyerImagePath.String
+		event.FlyerImagePath = &v
 	}
 
 	formattedEventDate, err := formatDateValue(eventDate)

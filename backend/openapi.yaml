@@ -451,6 +451,54 @@ paths:
       responses:
         "204":
           description: 削除成功
+  /events/{id}/flyer-image:
+    post:
+      tags: [Events]
+      summary: イベントのフライヤー画像アップロード
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        "400":
+          description: リクエスト不正
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: 権限なし
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: 見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /events/{id}/reservations:
     get:
       tags: [Events]
@@ -972,6 +1020,9 @@ components:
         title:
           type: string
         description:
+          type: string
+          nullable: true
+        flyer_image_path:
           type: string
           nullable: true
         venue_name:

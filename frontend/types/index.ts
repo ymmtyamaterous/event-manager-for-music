@@ -6,6 +6,7 @@ export type EventCard = {
   id: string;
   title: string;
   description: string;
+  flyerImagePath: string | null;
   venueName: string;
   venueAddress: string;
   eventDate: string;

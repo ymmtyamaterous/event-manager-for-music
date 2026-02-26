@@ -171,6 +171,7 @@ func NewServer(cfg config.Config) *Server {
 	mux.HandleFunc("GET /api/v1/events", app.handleListEvents)
 	mux.HandleFunc("POST /api/v1/events", app.handleCreateEvent)
 	mux.HandleFunc("GET /api/v1/events/{id}", app.handleGetEvent)
+	mux.HandleFunc("POST /api/v1/events/{id}/flyer-image", app.handleUploadEventFlyerImage)
 	mux.HandleFunc("GET /api/v1/events/{id}/performances", app.handleListEventPerformances)
 	mux.HandleFunc("PATCH /api/v1/events/{id}/performances/{performanceId}", app.handleUpdatePerformance)
 	mux.HandleFunc("DELETE /api/v1/events/{id}/performances/{performanceId}", app.handleDeletePerformance)
@@ -637,6 +638,99 @@ func (a *app) handleCreateEvent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusCreated, createdEvent)
+}
+
+func (a *app) handleUploadEventFlyerImage(w http.ResponseWriter, r *http.Request) {
+	claims, err := a.parseAccessTokenFromHeader(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	if claims.UserType != model.UserTypeOrganizer {
+		writeError(w, http.StatusForbidden, "運営者ユーザーのみフライヤー画像をアップロードできます")
+		return
+	}
+
+	if err := r.ParseMultipartForm(5 << 20); err != nil {
+		writeError(w, http.StatusBadRequest, "multipart/form-data で file を送信してください")
+		return
+	}
+
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "file は必須です")
+		return
+	}
+	defer file.Close()
+
+	if header.Size > 5<<20 {
+		writeError(w, http.StatusBadRequest, "ファイルサイズは5MB以下にしてください")
+		return
+	}
+
+	if err := os.MkdirAll(a.uploadDir, 0o755); err != nil {
+		writeError(w, http.StatusInternalServerError, "アップロード先ディレクトリの作成に失敗しました")
+		return
+	}
+
+	sniff := make([]byte, 512)
+	readN, readErr := io.ReadFull(file, sniff)
+	if readErr != nil && !errors.Is(readErr, io.EOF) && !errors.Is(readErr, io.ErrUnexpectedEOF) {
+		writeError(w, http.StatusBadRequest, "画像ファイルの読み取りに失敗しました")
+		return
+	}
+
+	contentType := http.DetectContentType(sniff[:readN])
+	if !strings.HasPrefix(contentType, "image/") {
+		writeError(w, http.StatusBadRequest, "画像ファイルのみアップロードできます")
+		return
+	}
+
+	ext := imageExtensionFromContentType(contentType)
+	if ext == "" {
+		ext = strings.ToLower(filepath.Ext(header.Filename))
+	}
+	if !isSupportedImageExt(ext) {
+		writeError(w, http.StatusBadRequest, "対応していない画像形式です")
+		return
+	}
+
+	eventID := r.PathValue("id")
+	filename := fmt.Sprintf("event_flyer_%s_%d%s", eventID, time.Now().UnixNano(), ext)
+	absPath := filepath.Join(a.uploadDir, filename)
+
+	dst, err := os.Create(absPath)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "画像ファイルの保存に失敗しました")
+		return
+	}
+	defer dst.Close()
+
+	if _, err := dst.Write(sniff[:readN]); err != nil {
+		writeError(w, http.StatusInternalServerError, "画像ファイルの保存に失敗しました")
+		return
+	}
+	if _, err := io.Copy(dst, file); err != nil {
+		writeError(w, http.StatusInternalServerError, "画像ファイルの保存に失敗しました")
+		return
+	}
+
+	publicPath := "/uploads/" + filename
+	updatedEvent, err := a.store.UpdateEventFlyerImage(eventID, claims.UserID, publicPath)
+	if err != nil {
+		_ = os.Remove(absPath)
+		switch {
+		case errors.Is(err, store.ErrForbidden):
+			writeError(w, http.StatusForbidden, "このイベントのフライヤー画像を更新する権限がありません")
+		case errors.Is(err, store.ErrNotFound):
+			writeError(w, http.StatusNotFound, "イベントが存在しません")
+		default:
+			writeError(w, http.StatusInternalServerError, "サーバーエラー")
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusOK, updatedEvent)
 }
 
 func (a *app) handleGetEvent(w http.ResponseWriter, r *http.Request) {

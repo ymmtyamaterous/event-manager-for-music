@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getEvent, listEventAnnouncements, listEventPerformances } from "@/lib/api";
+import { getEvent, listEventAnnouncements, listEventPerformances, resolveAssetUrl } from "@/lib/api";
 import { Announcement, EventCard, EventPerformance } from "@/types";
 import { ReservationPanel } from "@/components/events/ReservationPanel";
 
@@ -40,6 +40,11 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
       <div className="space-y-6 lg:col-span-2">
         <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          {event.flyerImagePath && (
+            <div className="mb-4 h-56 w-full overflow-hidden rounded-lg border border-gray-200 bg-gray-100">
+              <div className="h-full w-full bg-cover bg-center" style={{ backgroundImage: `url(${resolveAssetUrl(event.flyerImagePath)})` }} />
+            </div>
+          )}
           <h1 className="text-2xl font-bold text-gray-900">{event.title}</h1>
           <p className="mt-3 text-sm leading-7 text-gray-700">{event.description}</p>
           <div className="mt-4 space-y-1 text-sm text-gray-700">

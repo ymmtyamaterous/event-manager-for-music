@@ -1,7 +1,7 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
-import { APIUser, getEvent, updateEvent } from "@/lib/api";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import { APIUser, getEvent, resolveAssetUrl, updateEvent, uploadEventFlyerImage } from "@/lib/api";
 
 type EventEditForm = {
   title: string;
@@ -46,6 +46,9 @@ export default function OrganizerEventEditPage({ params }: OrganizerEventEditPag
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingFlyer, setIsUploadingFlyer] = useState(false);
+  const [selectedFlyerFile, setSelectedFlyerFile] = useState<File | null>(null);
+  const [flyerPreviewUrl, setFlyerPreviewUrl] = useState("");
 
   const accessToken = useMemo(() => {
     if (typeof window === "undefined") {
@@ -108,6 +111,7 @@ export default function OrganizerEventEditPage({ params }: OrganizerEventEditPag
           capacity: event.capacity?.toString() ?? "",
           status: event.status,
         });
+        setFlyerPreviewUrl(resolveAssetUrl(event.flyerImagePath));
       } catch (err) {
         setError(err instanceof Error ? err.message : "イベント取得に失敗しました");
       } finally {
@@ -147,6 +151,39 @@ export default function OrganizerEventEditPage({ params }: OrganizerEventEditPag
     }
   };
 
+  const handleSelectFlyerFile = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      setSelectedFlyerFile(null);
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      setError("画像ファイルを選択してください");
+      setSelectedFlyerFile(null);
+      return;
+    }
+    setError("");
+    setSelectedFlyerFile(file);
+    setFlyerPreviewUrl(URL.createObjectURL(file));
+  };
+
+  const handleUploadFlyer = async () => {
+    if (!eventId || !accessToken || !selectedFlyerFile) {
+      return;
+    }
+    setError("");
+    setIsUploadingFlyer(true);
+    try {
+      const updated = await uploadEventFlyerImage(eventId, accessToken, selectedFlyerFile);
+      setFlyerPreviewUrl(resolveAssetUrl(updated.flyerImagePath));
+      setSelectedFlyerFile(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "フライヤー画像のアップロードに失敗しました");
+    } finally {
+      setIsUploadingFlyer(false);
+    }
+  };
+
   if (isLoading) {
     return <p className="text-sm text-gray-600">読み込み中...</p>;
   }
@@ -157,6 +194,30 @@ export default function OrganizerEventEditPage({ params }: OrganizerEventEditPag
       <p className="mt-1 text-sm text-gray-600">必要な項目を更新してください。</p>
 
       {error && <div className="mt-4 bg-red-50 text-red-700 border border-red-200 rounded-lg px-4 py-3 text-sm">{error}</div>}
+
+      <div className="mt-5 rounded-xl border border-gray-200 p-4">
+        <h2 className="text-sm font-semibold text-gray-700">フライヤー画像</h2>
+        <div className="mt-3 flex flex-col gap-4">
+          <div className="h-44 w-full overflow-hidden rounded-lg border border-gray-200 bg-gray-100">
+            {flyerPreviewUrl ? (
+              <div className="h-full w-full bg-cover bg-center" style={{ backgroundImage: `url(${flyerPreviewUrl})` }} />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-sm text-gray-500">未設定</div>
+            )}
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <input type="file" accept="image/*" onChange={handleSelectFlyerFile} className="block w-full text-sm text-gray-700" />
+            <button
+              type="button"
+              onClick={handleUploadFlyer}
+              disabled={!selectedFlyerFile || isUploadingFlyer}
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-70"
+            >
+              {isUploadingFlyer ? "アップロード中..." : "フライヤーをアップロード"}
+            </button>
+          </div>
+        </div>
+      </div>
 
       <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
         <div>
