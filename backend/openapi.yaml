@@ -208,6 +208,175 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /bands/{id}:
+    patch:
+      tags: [Bands]
+      summary: バンド情報更新
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateBandRequest"
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Band"
+  /bands/{id}/profile-image:
+    post:
+      tags: [Bands]
+      summary: バンドプロフィール画像アップロード
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Band"
+  /bands/{id}/members:
+    get:
+      tags: [Bands]
+      summary: バンドメンバー一覧取得
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BandMember"
+    put:
+      tags: [Bands]
+      summary: バンドメンバー一括更新
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "#/components/schemas/UpsertBandMemberRequest"
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BandMember"
+  /bands/{id}/setlists:
+    get:
+      tags: [Bands]
+      summary: セットリスト一覧取得
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Setlist"
+    post:
+      tags: [Bands]
+      summary: セットリスト追加
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSetlistRequest"
+      responses:
+        "201":
+          description: 作成成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Setlist"
+  /bands/{id}/setlists/{setlistId}:
+    delete:
+      tags: [Bands]
+      summary: セットリスト削除
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: setlistId
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: 削除成功
   /bands/{id}/entries:
     get:
       tags: [Entries]
@@ -1281,10 +1450,19 @@ components:
           type: string
         name:
           type: string
+        profile_image_path:
+          type: string
+          nullable: true
         genre:
           type: string
           nullable: true
+        formed_year:
+          type: integer
+          nullable: true
         description:
+          type: string
+          nullable: true
+        twitter_url:
           type: string
           nullable: true
         created_at:
@@ -1303,6 +1481,82 @@ components:
           type: string
         description:
           type: string
+    UpdateBandRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        genre:
+          type: string
+        description:
+          type: string
+        formed_year:
+          type: integer
+        twitter_url:
+          type: string
+    BandMember:
+      type: object
+      required: [id, band_id, name, part, display_order, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        band_id:
+          type: string
+        name:
+          type: string
+        part:
+          type: string
+        display_order:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    UpsertBandMemberRequest:
+      type: object
+      required: [name, part, display_order]
+      properties:
+        name:
+          type: string
+        part:
+          type: string
+        display_order:
+          type: integer
+          minimum: 1
+    Setlist:
+      type: object
+      required: [id, band_id, title, display_order, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        band_id:
+          type: string
+        title:
+          type: string
+        artist:
+          type: string
+          nullable: true
+        display_order:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    CreateSetlistRequest:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+        artist:
+          type: string
+        display_order:
+          type: integer
+          minimum: 1
     Performance:
       type: object
       required: [id, event_id, band_id, band_name, performance_order, created_at, updated_at]

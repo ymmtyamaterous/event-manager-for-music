@@ -16,6 +16,8 @@ type MemoryStore struct {
 	usersByID         map[string]model.User
 	userByEmail       map[string]string
 	bandsByID         map[string]model.Band
+	bandMembersByBand map[string][]model.BandMember
+	setlistsByBand    map[string][]model.Setlist
 	eventsByID        map[string]model.Event
 	performancesByID  map[string]model.Performance
 	reservationsByID  map[string]model.Reservation
@@ -28,6 +30,8 @@ func NewMemoryStore() *MemoryStore {
 		usersByID:         map[string]model.User{},
 		userByEmail:       map[string]string{},
 		bandsByID:         map[string]model.Band{},
+		bandMembersByBand: map[string][]model.BandMember{},
+		setlistsByBand:    map[string][]model.Setlist{},
 		eventsByID:        map[string]model.Event{},
 		performancesByID:  map[string]model.Performance{},
 		reservationsByID:  map[string]model.Reservation{},
@@ -185,6 +189,245 @@ func (s *MemoryStore) CreateBand(userID string, name string, genre string, descr
 
 	s.bandsByID[band.ID] = band
 	return band, nil
+}
+
+func (s *MemoryStore) UpdateBand(bandID string, userID string, name *string, genre *string, description *string, formedYear *int, twitterURL *string) (model.Band, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	band, exists := s.bandsByID[bandID]
+	if !exists {
+		return model.Band{}, ErrNotFound
+	}
+	if band.OwnerID != userID {
+		return model.Band{}, ErrForbidden
+	}
+
+	if name != nil {
+		trimmed := strings.TrimSpace(*name)
+		if trimmed != "" {
+			band.Name = trimmed
+		}
+	}
+	if genre != nil {
+		trimmed := strings.TrimSpace(*genre)
+		if trimmed == "" {
+			band.Genre = nil
+		} else {
+			band.Genre = &trimmed
+		}
+	}
+	if description != nil {
+		trimmed := strings.TrimSpace(*description)
+		if trimmed == "" {
+			band.Description = nil
+		} else {
+			band.Description = &trimmed
+		}
+	}
+	if formedYear != nil {
+		if *formedYear <= 0 {
+			band.FormedYear = nil
+		} else {
+			v := *formedYear
+			band.FormedYear = &v
+		}
+	}
+	if twitterURL != nil {
+		trimmed := strings.TrimSpace(*twitterURL)
+		if trimmed == "" {
+			band.TwitterURL = nil
+		} else {
+			band.TwitterURL = &trimmed
+		}
+	}
+
+	band.UpdatedAt = nowInTokyo()
+	s.bandsByID[band.ID] = band
+	return band, nil
+}
+
+func (s *MemoryStore) UpdateBandProfileImage(bandID string, userID string, path string) (model.Band, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	band, exists := s.bandsByID[bandID]
+	if !exists {
+		return model.Band{}, ErrNotFound
+	}
+	if band.OwnerID != userID {
+		return model.Band{}, ErrForbidden
+	}
+
+	trimmedPath := strings.TrimSpace(path)
+	if trimmedPath == "" {
+		return model.Band{}, ErrConflict
+	}
+
+	band.ProfileImagePath = &trimmedPath
+	band.UpdatedAt = nowInTokyo()
+	s.bandsByID[band.ID] = band
+
+	return band, nil
+}
+
+func (s *MemoryStore) ListBandMembers(bandID string, userID string) ([]model.BandMember, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	band, exists := s.bandsByID[bandID]
+	if !exists {
+		return nil, ErrNotFound
+	}
+	if band.OwnerID != userID {
+		return nil, ErrForbidden
+	}
+
+	members := append([]model.BandMember{}, s.bandMembersByBand[bandID]...)
+	sort.Slice(members, func(i, j int) bool {
+		if members[i].DisplayOrder == members[j].DisplayOrder {
+			return members[i].CreatedAt.Before(members[j].CreatedAt)
+		}
+		return members[i].DisplayOrder < members[j].DisplayOrder
+	})
+
+	return members, nil
+}
+
+func (s *MemoryStore) ReplaceBandMembers(bandID string, userID string, members []model.BandMember) ([]model.BandMember, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	band, exists := s.bandsByID[bandID]
+	if !exists {
+		return nil, ErrNotFound
+	}
+	if band.OwnerID != userID {
+		return nil, ErrForbidden
+	}
+
+	now := nowInTokyo()
+	replaced := make([]model.BandMember, 0, len(members))
+	for index, member := range members {
+		name := strings.TrimSpace(member.Name)
+		part := strings.TrimSpace(member.Part)
+		if name == "" || part == "" {
+			continue
+		}
+		order := member.DisplayOrder
+		if order <= 0 {
+			order = index + 1
+		}
+		replaced = append(replaced, model.BandMember{
+			ID:           uuid.NewString(),
+			BandID:       bandID,
+			Name:         name,
+			Part:         part,
+			DisplayOrder: order,
+			CreatedAt:    now,
+			UpdatedAt:    now,
+		})
+	}
+
+	s.bandMembersByBand[bandID] = replaced
+	return append([]model.BandMember{}, replaced...), nil
+}
+
+func (s *MemoryStore) ListSetlists(bandID string, userID string) ([]model.Setlist, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	band, exists := s.bandsByID[bandID]
+	if !exists {
+		return nil, ErrNotFound
+	}
+	if band.OwnerID != userID {
+		return nil, ErrForbidden
+	}
+
+	items := append([]model.Setlist{}, s.setlistsByBand[bandID]...)
+	sort.Slice(items, func(i, j int) bool {
+		if items[i].DisplayOrder == items[j].DisplayOrder {
+			return items[i].CreatedAt.Before(items[j].CreatedAt)
+		}
+		return items[i].DisplayOrder < items[j].DisplayOrder
+	})
+
+	return items, nil
+}
+
+func (s *MemoryStore) CreateSetlist(bandID string, userID string, title string, artist *string, displayOrder int) (model.Setlist, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	band, exists := s.bandsByID[bandID]
+	if !exists {
+		return model.Setlist{}, ErrNotFound
+	}
+	if band.OwnerID != userID {
+		return model.Setlist{}, ErrForbidden
+	}
+
+	trimmedTitle := strings.TrimSpace(title)
+	if trimmedTitle == "" {
+		return model.Setlist{}, ErrConflict
+	}
+
+	var artistValue *string
+	if artist != nil {
+		trimmedArtist := strings.TrimSpace(*artist)
+		if trimmedArtist != "" {
+			artistValue = &trimmedArtist
+		}
+	}
+
+	if displayOrder <= 0 {
+		displayOrder = len(s.setlistsByBand[bandID]) + 1
+	}
+
+	now := nowInTokyo()
+	item := model.Setlist{
+		ID:           uuid.NewString(),
+		BandID:       bandID,
+		Title:        trimmedTitle,
+		Artist:       artistValue,
+		DisplayOrder: displayOrder,
+		CreatedAt:    now,
+		UpdatedAt:    now,
+	}
+
+	s.setlistsByBand[bandID] = append(s.setlistsByBand[bandID], item)
+	return item, nil
+}
+
+func (s *MemoryStore) DeleteSetlist(bandID string, setlistID string, userID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	band, exists := s.bandsByID[bandID]
+	if !exists {
+		return ErrNotFound
+	}
+	if band.OwnerID != userID {
+		return ErrForbidden
+	}
+
+	rows := s.setlistsByBand[bandID]
+	filtered := make([]model.Setlist, 0, len(rows))
+	deleted := false
+	for _, row := range rows {
+		if row.ID == setlistID {
+			deleted = true
+			continue
+		}
+		filtered = append(filtered, row)
+	}
+	if !deleted {
+		return ErrNotFound
+	}
+
+	s.setlistsByBand[bandID] = filtered
+	return nil
 }
 
 func (s *MemoryStore) CreateUser(user model.User) (model.User, error) {

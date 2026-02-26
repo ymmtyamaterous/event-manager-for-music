@@ -252,7 +252,7 @@ func (s *PostgresStore) UpdateUserProfileImage(userID string, path string) (mode
 
 func (s *PostgresStore) ListBandsByOwner(userID string) ([]model.Band, error) {
 	const q = `
-		SELECT id, owner_id, name, genre, description, created_at, updated_at
+		SELECT id, owner_id, name, profile_image_path, genre, formed_year, description, twitter_url, created_at, updated_at
 		FROM bands
 		WHERE owner_id = $1
 		ORDER BY created_at DESC
@@ -317,7 +317,7 @@ func (s *PostgresStore) CreateBand(userID string, name string, genre string, des
 	const q = `
 		INSERT INTO bands (owner_id, name, genre, description)
 		VALUES ($1, $2, $3, $4)
-		RETURNING id, owner_id, name, genre, description, created_at, updated_at
+		RETURNING id, owner_id, name, profile_image_path, genre, formed_year, description, twitter_url, created_at, updated_at
 	`
 
 	band, ok := scanBand(s.db.QueryRow(q, userID, trimmedName, genreArg, descriptionArg))
@@ -326,6 +326,273 @@ func (s *PostgresStore) CreateBand(userID string, name string, genre string, des
 	}
 
 	return band, nil
+}
+
+func (s *PostgresStore) UpdateBand(bandID string, userID string, name *string, genre *string, description *string, formedYear *int, twitterURL *string) (model.Band, error) {
+	const q = `
+		UPDATE bands
+		SET
+			name = CASE WHEN $3 IS NULL THEN name ELSE COALESCE(NULLIF($3, ''), name) END,
+			genre = CASE WHEN $4 IS NULL THEN genre ELSE NULLIF($4, '') END,
+			description = CASE WHEN $5 IS NULL THEN description ELSE NULLIF($5, '') END,
+			formed_year = CASE WHEN $6 IS NULL OR $6 <= 0 THEN formed_year ELSE $6 END,
+			twitter_url = CASE WHEN $7 IS NULL THEN twitter_url ELSE NULLIF($7, '') END,
+			updated_at = NOW()
+		WHERE id = $1 AND owner_id = $2
+		RETURNING id, owner_id, name, profile_image_path, genre, formed_year, description, twitter_url, created_at, updated_at
+	`
+
+	band, ok := scanBand(s.db.QueryRow(
+		q,
+		bandID,
+		userID,
+		stringOrNil(name),
+		stringOrNil(genre),
+		stringOrNil(description),
+		formedYear,
+		stringOrNil(twitterURL),
+	))
+	if !ok {
+		if _, exists := s.GetBandByIDAndOwner(bandID, userID); !exists {
+			if s.bandExists(bandID) {
+				return model.Band{}, ErrForbidden
+			}
+			return model.Band{}, ErrNotFound
+		}
+		return model.Band{}, ErrNotFound
+	}
+
+	return band, nil
+}
+
+func (s *PostgresStore) UpdateBandProfileImage(bandID string, userID string, path string) (model.Band, error) {
+	trimmedPath := strings.TrimSpace(path)
+	if trimmedPath == "" {
+		return model.Band{}, ErrConflict
+	}
+
+	const q = `
+		UPDATE bands
+		SET
+			profile_image_path = $3,
+			updated_at = NOW()
+		WHERE id = $1 AND owner_id = $2
+		RETURNING id, owner_id, name, profile_image_path, genre, formed_year, description, twitter_url, created_at, updated_at
+	`
+
+	band, ok := scanBand(s.db.QueryRow(q, bandID, userID, trimmedPath))
+	if !ok {
+		if s.bandExists(bandID) {
+			return model.Band{}, ErrForbidden
+		}
+		return model.Band{}, ErrNotFound
+	}
+
+	return band, nil
+}
+
+func (s *PostgresStore) ListBandMembers(bandID string, userID string) ([]model.BandMember, error) {
+	if _, exists := s.GetBandByIDAndOwner(bandID, userID); !exists {
+		if s.bandExists(bandID) {
+			return nil, ErrForbidden
+		}
+		return nil, ErrNotFound
+	}
+
+	const q = `
+		SELECT id, band_id, name, part, display_order, created_at, updated_at
+		FROM band_members
+		WHERE band_id = $1
+		ORDER BY display_order ASC, created_at ASC
+	`
+
+	rows, err := s.db.Query(q, bandID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result := make([]model.BandMember, 0)
+	for rows.Next() {
+		member, ok := scanBandMember(rows)
+		if ok {
+			result = append(result, member)
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (s *PostgresStore) ReplaceBandMembers(bandID string, userID string, members []model.BandMember) ([]model.BandMember, error) {
+	if _, exists := s.GetBandByIDAndOwner(bandID, userID); !exists {
+		if s.bandExists(bandID) {
+			return nil, ErrForbidden
+		}
+		return nil, ErrNotFound
+	}
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.Exec(`DELETE FROM band_members WHERE band_id = $1`, bandID); err != nil {
+		return nil, err
+	}
+
+	const insertQ = `
+		INSERT INTO band_members (band_id, name, part, display_order)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id, band_id, name, part, display_order, created_at, updated_at
+	`
+
+	inserted := make([]model.BandMember, 0, len(members))
+	for index, m := range members {
+		name := strings.TrimSpace(m.Name)
+		part := strings.TrimSpace(m.Part)
+		if name == "" || part == "" {
+			continue
+		}
+		order := m.DisplayOrder
+		if order <= 0 {
+			order = index + 1
+		}
+
+		member, ok := scanBandMember(tx.QueryRow(insertQ, bandID, name, part, order))
+		if !ok {
+			return nil, errors.New("バンドメンバーの更新に失敗しました")
+		}
+		inserted = append(inserted, member)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return inserted, nil
+}
+
+func (s *PostgresStore) ListSetlists(bandID string, userID string) ([]model.Setlist, error) {
+	if _, exists := s.GetBandByIDAndOwner(bandID, userID); !exists {
+		if s.bandExists(bandID) {
+			return nil, ErrForbidden
+		}
+		return nil, ErrNotFound
+	}
+
+	const q = `
+		SELECT id, band_id, title, artist, display_order, created_at, updated_at
+		FROM setlists
+		WHERE band_id = $1
+		ORDER BY display_order ASC, created_at ASC
+	`
+
+	rows, err := s.db.Query(q, bandID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result := make([]model.Setlist, 0)
+	for rows.Next() {
+		item, ok := scanSetlist(rows)
+		if ok {
+			result = append(result, item)
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (s *PostgresStore) CreateSetlist(bandID string, userID string, title string, artist *string, displayOrder int) (model.Setlist, error) {
+	if _, exists := s.GetBandByIDAndOwner(bandID, userID); !exists {
+		if s.bandExists(bandID) {
+			return model.Setlist{}, ErrForbidden
+		}
+		return model.Setlist{}, ErrNotFound
+	}
+
+	trimmedTitle := strings.TrimSpace(title)
+	if trimmedTitle == "" {
+		return model.Setlist{}, ErrConflict
+	}
+
+	if displayOrder <= 0 {
+		err := s.db.QueryRow(`SELECT COALESCE(MAX(display_order), 0) + 1 FROM setlists WHERE band_id = $1`, bandID).Scan(&displayOrder)
+		if err != nil {
+			return model.Setlist{}, err
+		}
+	}
+
+	const q = `
+		INSERT INTO setlists (band_id, title, artist, display_order)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id, band_id, title, artist, display_order, created_at, updated_at
+	`
+
+	item, ok := scanSetlist(s.db.QueryRow(q, bandID, trimmedTitle, stringOrNil(artist), displayOrder))
+	if !ok {
+		return model.Setlist{}, errors.New("セットリスト追加に失敗しました")
+	}
+
+	return item, nil
+}
+
+func (s *PostgresStore) DeleteSetlist(bandID string, setlistID string, userID string) error {
+	if _, exists := s.GetBandByIDAndOwner(bandID, userID); !exists {
+		if s.bandExists(bandID) {
+			return ErrForbidden
+		}
+		return ErrNotFound
+	}
+
+	result, err := s.db.Exec(`DELETE FROM setlists WHERE id = $1 AND band_id = $2`, setlistID, bandID)
+	if err != nil {
+		return err
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return ErrNotFound
+	}
+
+	return nil
+}
+
+func (s *PostgresStore) bandExists(bandID string) bool {
+	var exists bool
+	err := s.db.QueryRow(`SELECT EXISTS(SELECT 1 FROM bands WHERE id = $1)`, bandID).Scan(&exists)
+	if err != nil {
+		return false
+	}
+	return exists
+}
+
+func (s *PostgresStore) GetBandByIDAndOwner(bandID string, userID string) (model.Band, bool) {
+	const q = `
+		SELECT id, owner_id, name, profile_image_path, genre, formed_year, description, twitter_url, created_at, updated_at
+		FROM bands
+		WHERE id = $1 AND owner_id = $2
+	`
+
+	band, ok := scanBand(s.db.QueryRow(q, bandID, userID))
+	if !ok {
+		return model.Band{}, false
+	}
+
+	return band, true
 }
 
 func (s *PostgresStore) ListPerformancesByEvent(eventID string) ([]model.Performance, error) {
@@ -1387,6 +1654,14 @@ type performanceScanner interface {
 	Scan(dest ...any) error
 }
 
+type bandMemberScanner interface {
+	Scan(dest ...any) error
+}
+
+type setlistScanner interface {
+	Scan(dest ...any) error
+}
+
 func scanEvent(scanner eventScanner) (model.Event, error) {
 	var event model.Event
 	var description sql.NullString
@@ -1712,15 +1987,21 @@ func scanEntryWithEvent(scanner entryWithEventScanner) (model.EntryWithEvent, bo
 
 func scanBand(scanner bandScanner) (model.Band, bool) {
 	var band model.Band
+	var profileImagePath sql.NullString
 	var genre sql.NullString
+	var formedYear sql.NullInt32
 	var description sql.NullString
+	var twitterURL sql.NullString
 
 	err := scanner.Scan(
 		&band.ID,
 		&band.OwnerID,
 		&band.Name,
+		&profileImagePath,
 		&genre,
+		&formedYear,
 		&description,
+		&twitterURL,
 		&band.CreatedAt,
 		&band.UpdatedAt,
 	)
@@ -1728,16 +2009,72 @@ func scanBand(scanner bandScanner) (model.Band, bool) {
 		return model.Band{}, false
 	}
 
+	if profileImagePath.Valid {
+		v := profileImagePath.String
+		band.ProfileImagePath = &v
+	}
 	if genre.Valid {
 		v := genre.String
 		band.Genre = &v
+	}
+	if formedYear.Valid {
+		v := int(formedYear.Int32)
+		band.FormedYear = &v
 	}
 	if description.Valid {
 		v := description.String
 		band.Description = &v
 	}
+	if twitterURL.Valid {
+		v := twitterURL.String
+		band.TwitterURL = &v
+	}
 
 	return band, true
+}
+
+func scanBandMember(scanner bandMemberScanner) (model.BandMember, bool) {
+	var item model.BandMember
+
+	err := scanner.Scan(
+		&item.ID,
+		&item.BandID,
+		&item.Name,
+		&item.Part,
+		&item.DisplayOrder,
+		&item.CreatedAt,
+		&item.UpdatedAt,
+	)
+	if errors.Is(err, sql.ErrNoRows) || err != nil {
+		return model.BandMember{}, false
+	}
+
+	return item, true
+}
+
+func scanSetlist(scanner setlistScanner) (model.Setlist, bool) {
+	var item model.Setlist
+	var artist sql.NullString
+
+	err := scanner.Scan(
+		&item.ID,
+		&item.BandID,
+		&item.Title,
+		&artist,
+		&item.DisplayOrder,
+		&item.CreatedAt,
+		&item.UpdatedAt,
+	)
+	if errors.Is(err, sql.ErrNoRows) || err != nil {
+		return model.Setlist{}, false
+	}
+
+	if artist.Valid {
+		v := artist.String
+		item.Artist = &v
+	}
+
+	return item, true
 }
 
 func scanPerformance(scanner performanceScanner) (model.Performance, bool) {

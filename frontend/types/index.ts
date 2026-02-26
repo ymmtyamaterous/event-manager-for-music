@@ -22,8 +22,31 @@ export type Band = {
   id: string;
   ownerId: string;
   name: string;
+  profileImagePath: string | null;
   genre: string | null;
+  formedYear: number | null;
   description: string | null;
+  twitterUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type BandMember = {
+  id: string;
+  bandId: string;
+  name: string;
+  part: string;
+  displayOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type Setlist = {
+  id: string;
+  bandId: string;
+  title: string;
+  artist: string | null;
+  displayOrder: number;
   createdAt: string;
   updatedAt: string;
 };

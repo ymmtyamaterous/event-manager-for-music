@@ -25,13 +25,36 @@ type User struct {
 }
 
 type Band struct {
-	ID          string    `json:"id"`
-	OwnerID     string    `json:"owner_id"`
-	Name        string    `json:"name"`
-	Genre       *string   `json:"genre"`
-	Description *string   `json:"description"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID               string    `json:"id"`
+	OwnerID          string    `json:"owner_id"`
+	Name             string    `json:"name"`
+	ProfileImagePath *string   `json:"profile_image_path"`
+	Genre            *string   `json:"genre"`
+	FormedYear       *int      `json:"formed_year"`
+	Description      *string   `json:"description"`
+	TwitterURL       *string   `json:"twitter_url"`
+	CreatedAt        time.Time `json:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at"`
+}
+
+type BandMember struct {
+	ID           string    `json:"id"`
+	BandID       string    `json:"band_id"`
+	Name         string    `json:"name"`
+	Part         string    `json:"part"`
+	DisplayOrder int       `json:"display_order"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+}
+
+type Setlist struct {
+	ID           string    `json:"id"`
+	BandID       string    `json:"band_id"`
+	Title        string    `json:"title"`
+	Artist       *string   `json:"artist"`
+	DisplayOrder int       `json:"display_order"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 type EventStatus string

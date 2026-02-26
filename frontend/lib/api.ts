@@ -1,6 +1,7 @@
 import {
   Announcement,
   Band,
+  BandMember,
   BandEntry,
   EventCard,
   EventEntry,
@@ -8,6 +9,7 @@ import {
   OrganizerReservation,
   RegisterFormData,
   Reservation,
+  Setlist,
   UserType,
 } from "@/types";
 
@@ -97,8 +99,31 @@ type APIBand = {
   id: string;
   owner_id: string;
   name: string;
+  profile_image_path: string | null;
   genre: string | null;
+  formed_year: number | null;
   description: string | null;
+  twitter_url: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type APIBandMember = {
+  id: string;
+  band_id: string;
+  name: string;
+  part: string;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
+type APISetlist = {
+  id: string;
+  band_id: string;
+  title: string;
+  artist: string | null;
+  display_order: number;
   created_at: string;
   updated_at: string;
 };
@@ -549,6 +574,117 @@ export async function createBand(accessToken: string, input: CreateBandInput): P
   return toBand(response);
 }
 
+type UpdateBandInput = {
+  name?: string;
+  genre?: string;
+  description?: string;
+  formedYear?: number;
+  twitterUrl?: string;
+};
+
+export async function updateBand(bandId: string, accessToken: string, input: UpdateBandInput): Promise<Band> {
+  const response = await requestAuth<APIBand>(`/bands/${bandId}`, accessToken, {
+    method: "PATCH",
+    body: JSON.stringify({
+      name: input.name,
+      genre: input.genre,
+      description: input.description,
+      formed_year: input.formedYear,
+      twitter_url: input.twitterUrl,
+    }),
+  });
+
+  return toBand(response);
+}
+
+export async function uploadBandProfileImage(bandId: string, accessToken: string, file: File): Promise<Band> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch(`${API_BASE}/bands/${bandId}/profile-image`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: formData,
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const data = (await response.json().catch(() => null)) as APIErrorResponse | null;
+    throw new Error(data?.error ?? "APIリクエストに失敗しました");
+  }
+
+  const data = (await response.json()) as APIBand;
+  return toBand(data);
+}
+
+type UpsertBandMemberInput = {
+  name: string;
+  part: string;
+  displayOrder: number;
+};
+
+export async function listBandMembers(bandId: string, accessToken: string): Promise<BandMember[]> {
+  const response = await requestAuth<APIBandMember[]>(`/bands/${bandId}/members`, accessToken, {
+    method: "GET",
+  });
+
+  return response.map(toBandMember);
+}
+
+export async function replaceBandMembers(
+  bandId: string,
+  accessToken: string,
+  members: UpsertBandMemberInput[],
+): Promise<BandMember[]> {
+  const response = await requestAuth<APIBandMember[]>(`/bands/${bandId}/members`, accessToken, {
+    method: "PUT",
+    body: JSON.stringify(
+      members.map((item) => ({
+        name: item.name,
+        part: item.part,
+        display_order: item.displayOrder,
+      })),
+    ),
+  });
+
+  return response.map(toBandMember);
+}
+
+export async function listSetlists(bandId: string, accessToken: string): Promise<Setlist[]> {
+  const response = await requestAuth<APISetlist[]>(`/bands/${bandId}/setlists`, accessToken, {
+    method: "GET",
+  });
+
+  return response.map(toSetlist);
+}
+
+type CreateSetlistInput = {
+  title: string;
+  artist?: string;
+  displayOrder?: number;
+};
+
+export async function createSetlist(bandId: string, accessToken: string, input: CreateSetlistInput): Promise<Setlist> {
+  const response = await requestAuth<APISetlist>(`/bands/${bandId}/setlists`, accessToken, {
+    method: "POST",
+    body: JSON.stringify({
+      title: input.title,
+      artist: input.artist,
+      display_order: input.displayOrder,
+    }),
+  });
+
+  return toSetlist(response);
+}
+
+export async function deleteSetlist(bandId: string, setlistId: string, accessToken: string): Promise<void> {
+  await requestAuthWithoutJson(`/bands/${bandId}/setlists/${setlistId}`, accessToken, {
+    method: "DELETE",
+  });
+}
+
 export async function createEntry(eventId: string, accessToken: string, bandId: string, message?: string): Promise<void> {
   await requestAuth(`/events/${eventId}/entries`, accessToken, {
     method: "POST",
@@ -687,10 +823,37 @@ function toBand(band: APIBand): Band {
     id: band.id,
     ownerId: band.owner_id,
     name: band.name,
+    profileImagePath: band.profile_image_path,
     genre: band.genre,
+    formedYear: band.formed_year,
     description: band.description,
+    twitterUrl: band.twitter_url,
     createdAt: band.created_at,
     updatedAt: band.updated_at,
+  };
+}
+
+function toBandMember(member: APIBandMember): BandMember {
+  return {
+    id: member.id,
+    bandId: member.band_id,
+    name: member.name,
+    part: member.part,
+    displayOrder: member.display_order,
+    createdAt: member.created_at,
+    updatedAt: member.updated_at,
+  };
+}
+
+function toSetlist(item: APISetlist): Setlist {
+  return {
+    id: item.id,
+    bandId: item.band_id,
+    title: item.title,
+    artist: item.artist,
+    displayOrder: item.display_order,
+    createdAt: item.created_at,
+    updatedAt: item.updated_at,
   };
 }
 

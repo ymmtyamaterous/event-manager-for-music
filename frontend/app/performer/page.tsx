@@ -2,7 +2,18 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { APIUser, createBand, createEntry, listBandEntries, listEvents, listMyBands } from "@/lib/api";
+import {
+  APIUser,
+  createBand,
+  createEntry,
+  createSetlist,
+  listBandEntries,
+  listEvents,
+  listMyBands,
+  replaceBandMembers,
+  updateBand,
+  uploadBandProfileImage,
+} from "@/lib/api";
 import { Band, BandEntry, EventCard } from "@/types";
 
 export default function PerformerPage() {
@@ -11,6 +22,11 @@ export default function PerformerPage() {
   const [name, setName] = useState("");
   const [genre, setGenre] = useState("");
   const [description, setDescription] = useState("");
+  const [formedYear, setFormedYear] = useState("");
+  const [twitterUrl, setTwitterUrl] = useState("");
+  const [newBandImage, setNewBandImage] = useState<File | null>(null);
+  const [memberDraft, setMemberDraft] = useState("");
+  const [setlistDraft, setSetlistDraft] = useState("");
   const [selectedBandId, setSelectedBandId] = useState("");
   const [bandEntries, setBandEntries] = useState<BandEntry[]>([]);
   const [entryStatusFilter, setEntryStatusFilter] = useState<"" | "pending" | "approved" | "rejected">("");
@@ -120,11 +136,63 @@ export default function PerformerPage() {
         genre: genre.trim() || undefined,
         description: description.trim() || undefined,
       });
-      setBands((prev) => [created, ...prev]);
+
+      if (formedYear.trim() || twitterUrl.trim()) {
+        await updateBand(created.id, accessToken, {
+          formedYear: formedYear.trim() ? Number(formedYear) : undefined,
+          twitterUrl: twitterUrl.trim() || undefined,
+        });
+      }
+
+      const parsedMembers = memberDraft
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line, index) => {
+          const [namePart, rolePart] = line.split(",");
+          return {
+            name: (namePart ?? "").trim(),
+            part: (rolePart ?? "").trim(),
+            displayOrder: index + 1,
+          };
+        })
+        .filter((item) => item.name && item.part);
+      if (parsedMembers.length > 0) {
+        await replaceBandMembers(created.id, accessToken, parsedMembers);
+      }
+
+      const parsedSetlists = setlistDraft
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line, index) => {
+          const [titlePart, artistPart] = line.split(",");
+          return {
+            title: (titlePart ?? "").trim(),
+            artist: (artistPart ?? "").trim() || undefined,
+            displayOrder: index + 1,
+          };
+        })
+        .filter((item) => item.title);
+      for (const item of parsedSetlists) {
+        await createSetlist(created.id, accessToken, item);
+      }
+
+      if (newBandImage) {
+        await uploadBandProfileImage(created.id, accessToken, newBandImage);
+      }
+
+      const refreshedBands = await listMyBands(accessToken);
+      setBands(refreshedBands ?? []);
       setSelectedBandId(created.id);
       setName("");
       setGenre("");
       setDescription("");
+      setFormedYear("");
+      setTwitterUrl("");
+      setNewBandImage(null);
+      setMemberDraft("");
+      setSetlistDraft("");
       setSuccess("バンドを作成しました");
     } catch (err) {
       setError(err instanceof Error ? err.message : "バンド作成に失敗しました");
@@ -227,6 +295,42 @@ export default function PerformerPage() {
             placeholder="バンド説明（任意）"
             className="w-full min-h-24 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <input
+              type="number"
+              min={1900}
+              max={2999}
+              value={formedYear}
+              onChange={(e) => setFormedYear(e.target.value)}
+              placeholder="結成年（任意）"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <input
+              type="url"
+              value={twitterUrl}
+              onChange={(e) => setTwitterUrl(e.target.value)}
+              placeholder="X/Twitter URL（任意）"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setNewBandImage(e.target.files?.[0] ?? null)}
+            className="w-full text-sm text-gray-700"
+          />
+          <textarea
+            value={memberDraft}
+            onChange={(e) => setMemberDraft(e.target.value)}
+            placeholder="メンバー（任意）: 1行1人、名前,担当 で入力\n例: 山田太郎,Vocal"
+            className="w-full min-h-24 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <textarea
+            value={setlistDraft}
+            onChange={(e) => setSetlistDraft(e.target.value)}
+            placeholder="セットリスト（任意）: 1行1曲、曲名,アーティスト で入力"
+            className="w-full min-h-24 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
           <button
             type="submit"
             disabled={isSavingBand}
@@ -240,17 +344,27 @@ export default function PerformerPage() {
       <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
         <h2 className="text-lg font-bold text-gray-900">エントリー申請</h2>
         {bands.length > 0 ? (
-          <select
-            value={selectedBandId}
-            onChange={(e) => setSelectedBandId(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {bands.map((band) => (
-              <option key={band.id} value={band.id}>
-                {band.name}
-              </option>
-            ))}
-          </select>
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={selectedBandId}
+              onChange={(e) => setSelectedBandId(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {bands.map((band) => (
+                <option key={band.id} value={band.id}>
+                  {band.name}
+                </option>
+              ))}
+            </select>
+            {selectedBandId && (
+              <Link
+                href={`/performer/bands/${selectedBandId}`}
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                選択中バンドを編集
+              </Link>
+            )}
+          </div>
         ) : (
           <p className="text-sm text-gray-600">先にバンドを作成してください。</p>
         )}

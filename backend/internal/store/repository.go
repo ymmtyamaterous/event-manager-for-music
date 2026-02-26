@@ -10,6 +10,13 @@ type Repository interface {
 	UpdateUserProfileImage(userID string, path string) (model.User, error)
 	ListBandsByOwner(userID string) ([]model.Band, error)
 	CreateBand(userID string, name string, genre string, description string) (model.Band, error)
+	UpdateBand(bandID string, userID string, name *string, genre *string, description *string, formedYear *int, twitterURL *string) (model.Band, error)
+	UpdateBandProfileImage(bandID string, userID string, path string) (model.Band, error)
+	ListBandMembers(bandID string, userID string) ([]model.BandMember, error)
+	ReplaceBandMembers(bandID string, userID string, members []model.BandMember) ([]model.BandMember, error)
+	ListSetlists(bandID string, userID string) ([]model.Setlist, error)
+	CreateSetlist(bandID string, userID string, title string, artist *string, displayOrder int) (model.Setlist, error)
+	DeleteSetlist(bandID string, setlistID string, userID string) error
 	ListPerformancesByEvent(eventID string) ([]model.Performance, error)
 	UpdatePerformance(eventID string, performanceID string, organizerID string, startTime *string, endTime *string, performanceOrder *int) (model.Performance, error)
 	DeletePerformance(eventID string, performanceID string, organizerID string) error

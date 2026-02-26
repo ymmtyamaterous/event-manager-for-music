@@ -115,6 +115,26 @@ type createBandRequest struct {
 	Description string `json:"description"`
 }
 
+type updateBandRequest struct {
+	Name        *string `json:"name"`
+	Genre       *string `json:"genre"`
+	Description *string `json:"description"`
+	FormedYear  *int    `json:"formed_year"`
+	TwitterURL  *string `json:"twitter_url"`
+}
+
+type bandMemberRequest struct {
+	Name         string `json:"name"`
+	Part         string `json:"part"`
+	DisplayOrder int    `json:"display_order"`
+}
+
+type createSetlistRequest struct {
+	Title        string  `json:"title"`
+	Artist       *string `json:"artist"`
+	DisplayOrder int     `json:"display_order"`
+}
+
 type refreshRequest struct {
 	RefreshToken string `json:"refresh_token"`
 }
@@ -166,6 +186,13 @@ func NewServer(cfg config.Config) *Server {
 	mux.HandleFunc("PATCH /api/v1/users/me", app.handlePatchMe)
 	mux.HandleFunc("POST /api/v1/users/me/profile-image", app.handleUploadProfileImage)
 	mux.HandleFunc("GET /api/v1/bands/me", app.handleListMyBands)
+	mux.HandleFunc("PATCH /api/v1/bands/{id}", app.handleUpdateBand)
+	mux.HandleFunc("POST /api/v1/bands/{id}/profile-image", app.handleUploadBandProfileImage)
+	mux.HandleFunc("GET /api/v1/bands/{id}/members", app.handleListBandMembers)
+	mux.HandleFunc("PUT /api/v1/bands/{id}/members", app.handleReplaceBandMembers)
+	mux.HandleFunc("GET /api/v1/bands/{id}/setlists", app.handleListSetlists)
+	mux.HandleFunc("POST /api/v1/bands/{id}/setlists", app.handleCreateSetlist)
+	mux.HandleFunc("DELETE /api/v1/bands/{id}/setlists/{setlistId}", app.handleDeleteSetlist)
 	mux.HandleFunc("GET /api/v1/bands/{id}/entries", app.handleListBandEntries)
 	mux.HandleFunc("POST /api/v1/bands", app.handleCreateBand)
 	mux.HandleFunc("GET /api/v1/events", app.handleListEvents)
@@ -524,6 +551,311 @@ func (a *app) handleCreateBand(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusCreated, band)
+}
+
+func (a *app) handleUpdateBand(w http.ResponseWriter, r *http.Request) {
+	claims, err := a.parseAccessTokenFromHeader(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	if claims.UserType != model.UserTypePerformer {
+		writeError(w, http.StatusForbidden, "出演者ユーザーのみバンド編集できます")
+		return
+	}
+
+	var req updateBandRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "リクエスト形式が不正です")
+		return
+	}
+
+	updated, err := a.store.UpdateBand(
+		r.PathValue("id"),
+		claims.UserID,
+		req.Name,
+		req.Genre,
+		req.Description,
+		req.FormedYear,
+		req.TwitterURL,
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrForbidden):
+			writeError(w, http.StatusForbidden, "このバンドを編集する権限がありません")
+		case errors.Is(err, store.ErrNotFound):
+			writeError(w, http.StatusNotFound, "バンドが存在しません")
+		default:
+			writeError(w, http.StatusInternalServerError, "サーバーエラー")
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusOK, updated)
+}
+
+func (a *app) handleUploadBandProfileImage(w http.ResponseWriter, r *http.Request) {
+	claims, err := a.parseAccessTokenFromHeader(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	if claims.UserType != model.UserTypePerformer {
+		writeError(w, http.StatusForbidden, "出演者ユーザーのみバンド画像をアップロードできます")
+		return
+	}
+
+	if err := r.ParseMultipartForm(5 << 20); err != nil {
+		writeError(w, http.StatusBadRequest, "multipart/form-data で file を送信してください")
+		return
+	}
+
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "file は必須です")
+		return
+	}
+	defer file.Close()
+
+	if header.Size > 5<<20 {
+		writeError(w, http.StatusBadRequest, "ファイルサイズは5MB以下にしてください")
+		return
+	}
+
+	if err := os.MkdirAll(a.uploadDir, 0o755); err != nil {
+		writeError(w, http.StatusInternalServerError, "アップロード先ディレクトリの作成に失敗しました")
+		return
+	}
+
+	sniff := make([]byte, 512)
+	readN, readErr := io.ReadFull(file, sniff)
+	if readErr != nil && !errors.Is(readErr, io.EOF) && !errors.Is(readErr, io.ErrUnexpectedEOF) {
+		writeError(w, http.StatusBadRequest, "画像ファイルの読み取りに失敗しました")
+		return
+	}
+
+	contentType := http.DetectContentType(sniff[:readN])
+	if !strings.HasPrefix(contentType, "image/") {
+		writeError(w, http.StatusBadRequest, "画像ファイルのみアップロードできます")
+		return
+	}
+
+	ext := imageExtensionFromContentType(contentType)
+	if ext == "" {
+		ext = strings.ToLower(filepath.Ext(header.Filename))
+	}
+	if !isSupportedImageExt(ext) {
+		writeError(w, http.StatusBadRequest, "対応していない画像形式です")
+		return
+	}
+
+	bandID := r.PathValue("id")
+	filename := fmt.Sprintf("band_profile_%s_%d%s", bandID, time.Now().UnixNano(), ext)
+	absPath := filepath.Join(a.uploadDir, filename)
+
+	dst, err := os.Create(absPath)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "画像ファイルの保存に失敗しました")
+		return
+	}
+	defer dst.Close()
+
+	if _, err := dst.Write(sniff[:readN]); err != nil {
+		writeError(w, http.StatusInternalServerError, "画像ファイルの保存に失敗しました")
+		return
+	}
+	if _, err := io.Copy(dst, file); err != nil {
+		writeError(w, http.StatusInternalServerError, "画像ファイルの保存に失敗しました")
+		return
+	}
+
+	publicPath := "/uploads/" + filename
+	updatedBand, err := a.store.UpdateBandProfileImage(bandID, claims.UserID, publicPath)
+	if err != nil {
+		_ = os.Remove(absPath)
+		switch {
+		case errors.Is(err, store.ErrForbidden):
+			writeError(w, http.StatusForbidden, "このバンドの画像を更新する権限がありません")
+		case errors.Is(err, store.ErrNotFound):
+			writeError(w, http.StatusNotFound, "バンドが存在しません")
+		default:
+			writeError(w, http.StatusInternalServerError, "サーバーエラー")
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusOK, updatedBand)
+}
+
+func (a *app) handleListBandMembers(w http.ResponseWriter, r *http.Request) {
+	claims, err := a.parseAccessTokenFromHeader(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	if claims.UserType != model.UserTypePerformer {
+		writeError(w, http.StatusForbidden, "出演者ユーザーのみバンドメンバーを参照できます")
+		return
+	}
+
+	members, err := a.store.ListBandMembers(r.PathValue("id"), claims.UserID)
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrForbidden):
+			writeError(w, http.StatusForbidden, "このバンドのメンバーを参照する権限がありません")
+		case errors.Is(err, store.ErrNotFound):
+			writeError(w, http.StatusNotFound, "バンドが存在しません")
+		default:
+			writeError(w, http.StatusInternalServerError, "サーバーエラー")
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusOK, members)
+}
+
+func (a *app) handleReplaceBandMembers(w http.ResponseWriter, r *http.Request) {
+	claims, err := a.parseAccessTokenFromHeader(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	if claims.UserType != model.UserTypePerformer {
+		writeError(w, http.StatusForbidden, "出演者ユーザーのみバンドメンバーを更新できます")
+		return
+	}
+
+	var req []bandMemberRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "リクエスト形式が不正です")
+		return
+	}
+
+	members := make([]model.BandMember, 0, len(req))
+	for index, item := range req {
+		name := strings.TrimSpace(item.Name)
+		part := strings.TrimSpace(item.Part)
+		if name == "" || part == "" {
+			continue
+		}
+		order := item.DisplayOrder
+		if order <= 0 {
+			order = index + 1
+		}
+		members = append(members, model.BandMember{
+			Name:         name,
+			Part:         part,
+			DisplayOrder: order,
+		})
+	}
+
+	updated, err := a.store.ReplaceBandMembers(r.PathValue("id"), claims.UserID, members)
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrForbidden):
+			writeError(w, http.StatusForbidden, "このバンドのメンバーを更新する権限がありません")
+		case errors.Is(err, store.ErrNotFound):
+			writeError(w, http.StatusNotFound, "バンドが存在しません")
+		default:
+			writeError(w, http.StatusInternalServerError, "サーバーエラー")
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusOK, updated)
+}
+
+func (a *app) handleListSetlists(w http.ResponseWriter, r *http.Request) {
+	claims, err := a.parseAccessTokenFromHeader(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	if claims.UserType != model.UserTypePerformer {
+		writeError(w, http.StatusForbidden, "出演者ユーザーのみセットリストを参照できます")
+		return
+	}
+
+	items, err := a.store.ListSetlists(r.PathValue("id"), claims.UserID)
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrForbidden):
+			writeError(w, http.StatusForbidden, "このバンドのセットリストを参照する権限がありません")
+		case errors.Is(err, store.ErrNotFound):
+			writeError(w, http.StatusNotFound, "バンドが存在しません")
+		default:
+			writeError(w, http.StatusInternalServerError, "サーバーエラー")
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusOK, items)
+}
+
+func (a *app) handleCreateSetlist(w http.ResponseWriter, r *http.Request) {
+	claims, err := a.parseAccessTokenFromHeader(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	if claims.UserType != model.UserTypePerformer {
+		writeError(w, http.StatusForbidden, "出演者ユーザーのみセットリストを追加できます")
+		return
+	}
+
+	var req createSetlistRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "リクエスト形式が不正です")
+		return
+	}
+
+	title := strings.TrimSpace(req.Title)
+	if title == "" {
+		writeError(w, http.StatusBadRequest, "title は必須です")
+		return
+	}
+
+	item, err := a.store.CreateSetlist(r.PathValue("id"), claims.UserID, title, req.Artist, req.DisplayOrder)
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrForbidden):
+			writeError(w, http.StatusForbidden, "このバンドのセットリストを追加する権限がありません")
+		case errors.Is(err, store.ErrNotFound):
+			writeError(w, http.StatusNotFound, "バンドが存在しません")
+		default:
+			writeError(w, http.StatusInternalServerError, "サーバーエラー")
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, item)
+}
+
+func (a *app) handleDeleteSetlist(w http.ResponseWriter, r *http.Request) {
+	claims, err := a.parseAccessTokenFromHeader(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	if claims.UserType != model.UserTypePerformer {
+		writeError(w, http.StatusForbidden, "出演者ユーザーのみセットリストを削除できます")
+		return
+	}
+
+	err = a.store.DeleteSetlist(r.PathValue("id"), r.PathValue("setlistId"), claims.UserID)
+	if err != nil {
+		switch {
+		case errors.Is(err, store.ErrForbidden):
+			writeError(w, http.StatusForbidden, "このバンドのセットリストを削除する権限がありません")
+		case errors.Is(err, store.ErrNotFound):
+			writeError(w, http.StatusNotFound, "セットリストが存在しません")
+		default:
+			writeError(w, http.StatusInternalServerError, "サーバーエラー")
+		}
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (a *app) handleListBandEntries(w http.ResponseWriter, r *http.Request) {
