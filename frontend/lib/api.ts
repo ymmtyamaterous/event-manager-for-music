@@ -40,7 +40,11 @@ type APIEvent = {
   title: string;
   description: string | null;
   venue_name: string;
+  venue_address: string;
   event_date: string;
+  doors_open_time: string;
+  start_time: string;
+  end_time: string | null;
   ticket_price: number | null;
   capacity: number | null;
   status: "draft" | "published" | "cancelled";
@@ -563,7 +567,11 @@ function toEventCard(event: APIEvent): EventCard {
     title: event.title,
     description: event.description ?? "",
     venueName: event.venue_name,
+    venueAddress: event.venue_address,
     eventDate: event.event_date,
+    doorsOpenTime: event.doors_open_time,
+    startTime: event.start_time,
+    endTime: event.end_time,
     ticketPrice: event.ticket_price,
     capacity: event.capacity,
     status: event.status,

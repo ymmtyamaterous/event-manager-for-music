@@ -7,7 +7,11 @@ export type EventCard = {
   title: string;
   description: string;
   venueName: string;
+  venueAddress: string;
   eventDate: string;
+  doorsOpenTime: string;
+  startTime: string;
+  endTime: string | null;
   ticketPrice: number | null;
   capacity: number | null;
   status: EventStatus;

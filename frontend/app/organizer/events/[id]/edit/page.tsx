@@ -7,7 +7,13 @@ type EventEditForm = {
   title: string;
   description: string;
   venueName: string;
+  venueAddress: string;
   eventDate: string;
+  doorsOpenTime: string;
+  startTime: string;
+  endTime: string;
+  ticketPrice: string;
+  capacity: string;
   status: "draft" | "published" | "cancelled";
 };
 
@@ -16,12 +22,25 @@ type OrganizerEventEditPageProps = {
 };
 
 export default function OrganizerEventEditPage({ params }: OrganizerEventEditPageProps) {
+  const normalizeTimeValue = (value: string | null | undefined): string => {
+    if (!value) {
+      return "";
+    }
+    return value.length >= 5 ? value.slice(0, 5) : value;
+  };
+
   const [eventId, setEventId] = useState("");
   const [form, setForm] = useState<EventEditForm>({
     title: "",
     description: "",
     venueName: "",
+    venueAddress: "",
     eventDate: "",
+    doorsOpenTime: "",
+    startTime: "",
+    endTime: "",
+    ticketPrice: "",
+    capacity: "",
     status: "draft",
   });
   const [error, setError] = useState("");
@@ -80,7 +99,13 @@ export default function OrganizerEventEditPage({ params }: OrganizerEventEditPag
           title: event.title,
           description: event.description,
           venueName: event.venueName,
+          venueAddress: event.venueAddress,
           eventDate: event.eventDate,
+          doorsOpenTime: normalizeTimeValue(event.doorsOpenTime),
+          startTime: normalizeTimeValue(event.startTime),
+          endTime: normalizeTimeValue(event.endTime),
+          ticketPrice: event.ticketPrice?.toString() ?? "",
+          capacity: event.capacity?.toString() ?? "",
           status: event.status,
         });
       } catch (err) {
@@ -106,7 +131,13 @@ export default function OrganizerEventEditPage({ params }: OrganizerEventEditPag
         title: form.title,
         description: form.description,
         venueName: form.venueName,
+        venueAddress: form.venueAddress,
         eventDate: form.eventDate,
+        doorsOpenTime: form.doorsOpenTime,
+        startTime: form.startTime,
+        endTime: form.endTime || undefined,
+        ticketPrice: form.ticketPrice ? Number(form.ticketPrice) : undefined,
+        capacity: form.capacity ? Number(form.capacity) : undefined,
         status: form.status,
       });
       window.location.href = `/organizer/events/${eventId}`;
@@ -160,6 +191,17 @@ export default function OrganizerEventEditPage({ params }: OrganizerEventEditPag
         </div>
 
         <div>
+          <label className="mb-1 block text-sm font-semibold text-gray-700">会場住所</label>
+          <input
+            type="text"
+            required
+            value={form.venueAddress}
+            onChange={(e) => setForm((prev) => ({ ...prev, venueAddress: e.target.value }))}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div>
           <label className="mb-1 block text-sm font-semibold text-gray-700">開催日</label>
           <input
             type="date"
@@ -168,6 +210,62 @@ export default function OrganizerEventEditPage({ params }: OrganizerEventEditPag
             onChange={(e) => setForm((prev) => ({ ...prev, eventDate: e.target.value }))}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-sm font-semibold text-gray-700">開場時間</label>
+            <input
+              type="time"
+              required
+              value={form.doorsOpenTime}
+              onChange={(e) => setForm((prev) => ({ ...prev, doorsOpenTime: e.target.value }))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-semibold text-gray-700">開演時間</label>
+            <input
+              type="time"
+              required
+              value={form.startTime}
+              onChange={(e) => setForm((prev) => ({ ...prev, startTime: e.target.value }))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-semibold text-gray-700">終演予定時間（任意）</label>
+          <input
+            type="time"
+            value={form.endTime}
+            onChange={(e) => setForm((prev) => ({ ...prev, endTime: e.target.value }))}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-sm font-semibold text-gray-700">チケット料金（円）</label>
+            <input
+              type="number"
+              min={0}
+              value={form.ticketPrice}
+              onChange={(e) => setForm((prev) => ({ ...prev, ticketPrice: e.target.value }))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-semibold text-gray-700">定員（名）</label>
+            <input
+              type="number"
+              min={1}
+              value={form.capacity}
+              onChange={(e) => setForm((prev) => ({ ...prev, capacity: e.target.value }))}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
         </div>
 
         <fieldset>

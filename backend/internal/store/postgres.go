@@ -529,13 +529,13 @@ func (s *PostgresStore) UpdateEvent(input model.UpdateEventInput) (model.Event, 
 			description = CASE WHEN $3 IS NULL THEN description ELSE $3 END,
 			venue_name = COALESCE(NULLIF($4, ''), venue_name),
 			venue_address = COALESCE(NULLIF($5, ''), venue_address),
-			event_date = COALESCE(NULLIF($6, '')::date, event_date),
-			doors_open_time = COALESCE(NULLIF($7, '')::time, doors_open_time),
-			start_time = COALESCE(NULLIF($8, '')::time, start_time),
-			end_time = CASE WHEN $9 IS NULL OR $9 = '' THEN end_time ELSE $9::time END,
+			event_date = CASE WHEN $6 IS NULL THEN event_date ELSE $6::date END,
+			doors_open_time = CASE WHEN $7 IS NULL THEN doors_open_time ELSE $7::time END,
+			start_time = CASE WHEN $8 IS NULL THEN start_time ELSE $8::time END,
+			end_time = CASE WHEN $9 IS NULL THEN end_time ELSE $9::time END,
 			ticket_price = COALESCE($10, ticket_price),
 			capacity = COALESCE($11, capacity),
-			status = COALESCE(NULLIF($12, '')::event_status, status),
+			status = CASE WHEN $12 IS NULL THEN status ELSE $12::event_status END,
 			updated_at = NOW()
 		WHERE id = $1
 		RETURNING id, organizer_id, title, description, venue_name, venue_address, event_date, doors_open_time, start_time, end_time, ticket_price, capacity, status, created_at, updated_at
