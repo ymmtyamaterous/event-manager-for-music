@@ -38,7 +38,7 @@ export default function PerformerBandEditPage({ params }: BandEditPageProps) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const { accessToken, user } = useAuth();
+  const { accessToken, user, isReady } = useAuth();
 
   useEffect(() => {
     const loadParams = async () => {
@@ -76,6 +76,7 @@ export default function PerformerBandEditPage({ params }: BandEditPageProps) {
       if (!bandId) {
         return;
       }
+      if (!isReady) return;
       if (!accessToken || !user) {
         window.location.href = "/login";
         return;
@@ -97,7 +98,7 @@ export default function PerformerBandEditPage({ params }: BandEditPageProps) {
     };
 
     void load();
-  }, [bandId, accessToken, user, loadAll]);
+  }, [bandId, isReady, accessToken, user, loadAll]);
 
   const handleSaveBand = async () => {
     if (!accessToken || !bandId) {

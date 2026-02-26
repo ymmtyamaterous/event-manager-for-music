@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/useAuth";
 import { Reservation } from "@/types";
 
 export default function AudiencePage() {
-  const { accessToken, user } = useAuth();
+  const { accessToken, user, isReady } = useAuth();
   const [activeReservations, setActiveReservations] = useState<Reservation[]>([]);
   const [cancelledReservations, setCancelledReservations] = useState<Reservation[]>([]);
   const [error, setError] = useState("");
@@ -16,6 +16,7 @@ export default function AudiencePage() {
 
   useEffect(() => {
     const load = async () => {
+      if (!isReady) return;
       if (!accessToken) {
         window.location.href = "/login";
         return;
@@ -42,7 +43,7 @@ export default function AudiencePage() {
     };
 
     void load();
-  }, [accessToken, user?.user_type]);
+  }, [isReady, accessToken, user?.user_type]);
 
   const handleCancel = async (reservationId: string) => {
     if (!accessToken) {

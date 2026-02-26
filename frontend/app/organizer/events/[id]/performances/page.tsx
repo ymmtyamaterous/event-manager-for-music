@@ -13,7 +13,7 @@ type OrganizerPerformancesPageProps = {
 };
 
 export default function OrganizerPerformancesPage({ params }: OrganizerPerformancesPageProps) {
-  const { accessToken, user } = useAuth();
+  const { accessToken, user, isReady } = useAuth();
   const [eventId, setEventId] = useState("");
   const [items, setItems] = useState<EventPerformance[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -53,6 +53,7 @@ export default function OrganizerPerformancesPage({ params }: OrganizerPerforman
       if (!eventId) {
         return;
       }
+      if (!isReady) return;
       if (!user || !accessToken) {
         window.location.href = "/login";
         return;
@@ -74,7 +75,7 @@ export default function OrganizerPerformancesPage({ params }: OrganizerPerforman
     };
 
     void load();
-  }, [eventId, user, accessToken, reload]);
+  }, [eventId, isReady, user, accessToken, reload]);
 
   const openEditModal = (item: EventPerformance) => {
     setEditTarget(item);

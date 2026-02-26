@@ -30,7 +30,7 @@ export default function OrganizerEventEditPage({ params }: OrganizerEventEditPag
     return value.length >= 5 ? value.slice(0, 5) : value;
   };
 
-  const { accessToken, user } = useAuth();
+  const { accessToken, user, isReady } = useAuth();
   const [eventId, setEventId] = useState("");
   const [form, setForm] = useState<EventEditForm>({
     title: "",
@@ -65,6 +65,7 @@ export default function OrganizerEventEditPage({ params }: OrganizerEventEditPag
       if (!eventId) {
         return;
       }
+      if (!isReady) return;
       if (!accessToken || !user) {
         window.location.href = "/login";
         return;
@@ -100,7 +101,7 @@ export default function OrganizerEventEditPage({ params }: OrganizerEventEditPag
     };
 
     void load();
-  }, [eventId, accessToken, user]);
+  }, [eventId, isReady, accessToken, user]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();

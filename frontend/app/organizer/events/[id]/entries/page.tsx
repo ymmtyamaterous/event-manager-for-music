@@ -10,7 +10,7 @@ type OrganizerEntriesPageProps = {
 };
 
 export default function OrganizerEntriesPage({ params }: OrganizerEntriesPageProps) {
-  const { accessToken, user } = useAuth();
+  const { accessToken, user, isReady } = useAuth();
   const [eventId, setEventId] = useState("");
   const [status, setStatus] = useState<"" | "pending" | "approved" | "rejected">("");
   const [searchWord, setSearchWord] = useState("");
@@ -53,6 +53,7 @@ export default function OrganizerEntriesPage({ params }: OrganizerEntriesPagePro
       if (!eventId) {
         return;
       }
+      if (!isReady) return;
       if (!accessToken || !user) {
         window.location.href = "/login";
         return;
@@ -75,7 +76,7 @@ export default function OrganizerEntriesPage({ params }: OrganizerEntriesPagePro
     };
 
     void load();
-  }, [eventId, accessToken, user, status]);
+  }, [eventId, isReady, accessToken, user, status]);
 
   const reload = async () => {
     if (!eventId || !accessToken) {

@@ -11,7 +11,7 @@ type OrganizerEventDetailPageProps = {
 };
 
 export default function OrganizerEventDetailPage({ params }: OrganizerEventDetailPageProps) {
-  const { accessToken, user } = useAuth();
+  const { accessToken, user, isReady } = useAuth();
   const [eventId, setEventId] = useState("");
   const [event, setEvent] = useState<EventCard | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -32,6 +32,7 @@ export default function OrganizerEventDetailPage({ params }: OrganizerEventDetai
       if (!eventId) {
         return;
       }
+      if (!isReady) return;
       if (!accessToken || !user) {
         window.location.href = "/login";
         return;
@@ -54,7 +55,7 @@ export default function OrganizerEventDetailPage({ params }: OrganizerEventDetai
     };
 
     void load();
-  }, [eventId, accessToken, user]);
+  }, [eventId, isReady, accessToken, user]);
 
   const handleDelete = async () => {
     if (!eventId || !accessToken) {

@@ -38,10 +38,11 @@ export default function PerformerPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const { accessToken, user } = useAuth();
+  const { accessToken, user, isReady } = useAuth();
 
   useEffect(() => {
     const load = async () => {
+      if (!isReady) return;
       if (!user || !accessToken) {
         window.location.href = "/login";
         return;
@@ -67,7 +68,7 @@ export default function PerformerPage() {
     };
 
     void load();
-  }, [user, accessToken]);
+  }, [isReady, user, accessToken]);
 
   useEffect(() => {
     if (!selectedBandId && bands.length > 0) {
@@ -214,7 +215,7 @@ export default function PerformerPage() {
     }
   };
 
-  if (!user || user.user_type !== "performer") {
+  if (!isReady || !user || user.user_type !== "performer") {
     return null;
   }
 

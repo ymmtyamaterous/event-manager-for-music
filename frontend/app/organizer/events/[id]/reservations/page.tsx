@@ -10,7 +10,7 @@ type OrganizerReservationsPageProps = {
 };
 
 export default function OrganizerReservationsPage({ params }: OrganizerReservationsPageProps) {
-  const { accessToken, user } = useAuth();
+  const { accessToken, user, isReady } = useAuth();
   const [eventId, setEventId] = useState("");
   const [status, setStatus] = useState<"" | "reserved" | "cancelled">("");
   const [searchWord, setSearchWord] = useState("");
@@ -32,6 +32,7 @@ export default function OrganizerReservationsPage({ params }: OrganizerReservati
       if (!eventId) {
         return;
       }
+      if (!isReady) return;
       if (!accessToken || !user) {
         window.location.href = "/login";
         return;
@@ -60,7 +61,7 @@ export default function OrganizerReservationsPage({ params }: OrganizerReservati
     return () => {
       clearTimeout(timer);
     };
-  }, [eventId, accessToken, user, status, searchWord]);
+  }, [eventId, isReady, accessToken, user, status, searchWord]);
 
   const handleExport = async () => {
     if (!eventId || !accessToken) {

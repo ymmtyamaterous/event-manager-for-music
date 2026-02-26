@@ -7,13 +7,14 @@ import { useAuth } from "@/lib/useAuth";
 import { EventCard } from "@/types";
 
 export default function OrganizerPage() {
-  const { user } = useAuth();
+  const { user, isReady } = useAuth();
   const [events, setEvents] = useState<EventCard[]>([]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
+      if (!isReady) return;
       if (!user) {
         window.location.href = "/login";
         return;
@@ -35,7 +36,7 @@ export default function OrganizerPage() {
       }
     };
     void load();
-  }, [user]);
+  }, [isReady, user]);
 
   const publishedEvents = events.filter((event) => event.status === "published");
   const draftEvents = events.filter((event) => event.status === "draft");

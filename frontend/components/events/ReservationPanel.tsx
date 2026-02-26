@@ -10,7 +10,7 @@ type ReservationPanelProps = {
 };
 
 export function ReservationPanel({ eventId }: ReservationPanelProps) {
-  const { accessToken, user } = useAuth();
+  const { accessToken, user, isReady } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -29,6 +29,10 @@ export function ReservationPanel({ eventId }: ReservationPanelProps) {
       setIsSubmitting(false);
     }
   };
+
+  if (!isReady) {
+    return <p className="text-sm text-gray-400">読み込み中...</p>;
+  }
 
   if (!accessToken || !user) {
     return (

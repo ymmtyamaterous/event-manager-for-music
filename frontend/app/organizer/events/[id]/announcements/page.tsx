@@ -15,7 +15,7 @@ type OrganizerAnnouncementsPageProps = {
 };
 
 export default function OrganizerAnnouncementsPage({ params }: OrganizerAnnouncementsPageProps) {
-  const { accessToken, user } = useAuth();
+  const { accessToken, user, isReady } = useAuth();
   const [eventId, setEventId] = useState("");
   const [items, setItems] = useState<Announcement[]>([]);
   const [title, setTitle] = useState("");
@@ -47,6 +47,7 @@ export default function OrganizerAnnouncementsPage({ params }: OrganizerAnnounce
       if (!eventId) {
         return;
       }
+      if (!isReady) return;
       if (!accessToken || !user) {
         window.location.href = "/login";
         return;
@@ -68,7 +69,7 @@ export default function OrganizerAnnouncementsPage({ params }: OrganizerAnnounce
     };
 
     void load();
-  }, [eventId, accessToken, user, reload]);
+  }, [eventId, isReady, accessToken, user, reload]);
 
   const resetForm = () => {
     setTitle("");

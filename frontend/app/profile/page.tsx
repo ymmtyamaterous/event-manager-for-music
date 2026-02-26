@@ -26,10 +26,11 @@ export default function ProfilePage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const { accessToken } = useAuth();
+  const { accessToken, isReady } = useAuth();
 
   useEffect(() => {
     const load = async () => {
+      if (!isReady) return;
       if (!accessToken) {
         window.location.href = "/login";
         return;
@@ -48,7 +49,7 @@ export default function ProfilePage() {
     };
 
     void load();
-  }, [accessToken]);
+  }, [isReady, accessToken]);
 
   const applyUserToForm = (user: APIUser) => {
     setForm({
