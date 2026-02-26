@@ -17,6 +17,12 @@ export default function OrganizerEntriesPage({ params }: OrganizerEntriesPagePro
   const [isExporting, setIsExporting] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [approveModalEntryId, setApproveModalEntryId] = useState<string | null>(null);
+  const [approveStartTime, setApproveStartTime] = useState("");
+  const [approveEndTime, setApproveEndTime] = useState("");
+  const [approveOrder, setApproveOrder] = useState("");
+  const [rejectModalEntryId, setRejectModalEntryId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
 
   const accessToken = useMemo(() => {
     if (typeof window === "undefined") {
@@ -99,27 +105,30 @@ export default function OrganizerEntriesPage({ params }: OrganizerEntriesPagePro
     setItems(entries ?? []);
   };
 
-  const handleApprove = async (entryId: string) => {
+  const handleOpenApproveModal = (entryId: string) => {
+    setApproveModalEntryId(entryId);
+    setApproveStartTime("");
+    setApproveEndTime("");
+    setApproveOrder("");
+    setError("");
+  };
+
+  const handleCloseApproveModal = () => {
+    setApproveModalEntryId(null);
+  };
+
+  const handleApprove = async () => {
     if (!accessToken) {
       return;
     }
 
-    const startInput = window.prompt("開始時刻を入力してください（任意 / HH:MM）", "");
-    if (startInput === null) {
-      return;
-    }
-    const endInput = window.prompt("終了時刻を入力してください（任意 / HH:MM）", "");
-    if (endInput === null) {
-      return;
-    }
-    const orderInput = window.prompt("出演順を入力してください（任意 / 1以上の整数）", "");
-    if (orderInput === null) {
+    if (!approveModalEntryId) {
       return;
     }
 
-    const start = startInput.trim();
-    const end = endInput.trim();
-    const orderRaw = orderInput.trim();
+    const start = approveStartTime.trim();
+    const end = approveEndTime.trim();
+    const orderRaw = approveOrder.trim();
 
     if (start && !/^\d{2}:\d{2}$/.test(start)) {
       setError("開始時刻は HH:MM 形式で入力してください");
@@ -141,14 +150,15 @@ export default function OrganizerEntriesPage({ params }: OrganizerEntriesPagePro
     }
 
     setError("");
-    setProcessingId(entryId);
+    setProcessingId(approveModalEntryId);
     try {
-      await approveEntry(entryId, accessToken, {
+      await approveEntry(approveModalEntryId, accessToken, {
         startTime: start || undefined,
         endTime: end || undefined,
         performanceOrder,
       });
       await reload();
+      setApproveModalEntryId(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "承認に失敗しました");
     } finally {
@@ -156,25 +166,35 @@ export default function OrganizerEntriesPage({ params }: OrganizerEntriesPagePro
     }
   };
 
-  const handleReject = async (entryId: string) => {
+  const handleOpenRejectModal = (entryId: string) => {
+    setRejectModalEntryId(entryId);
+    setRejectReason("");
+    setError("");
+  };
+
+  const handleCloseRejectModal = () => {
+    setRejectModalEntryId(null);
+  };
+
+  const handleReject = async () => {
     if (!accessToken) {
       return;
     }
-    const reason = window.prompt("却下理由を入力してください");
-    if (reason === null) {
+    if (!rejectModalEntryId) {
       return;
     }
-    const trimmed = reason.trim();
+    const trimmed = rejectReason.trim();
     if (!trimmed) {
       setError("却下理由は必須です");
       return;
     }
 
     setError("");
-    setProcessingId(entryId);
+    setProcessingId(rejectModalEntryId);
     try {
-      await rejectEntry(entryId, accessToken, trimmed);
+      await rejectEntry(rejectModalEntryId, accessToken, trimmed);
       await reload();
+      setRejectModalEntryId(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "却下に失敗しました");
     } finally {
@@ -284,7 +304,7 @@ export default function OrganizerEntriesPage({ params }: OrganizerEntriesPagePro
               <div className="mt-4 flex gap-2">
                 <button
                   type="button"
-                  onClick={() => handleApprove(item.id)}
+                  onClick={() => handleOpenApproveModal(item.id)}
                   disabled={processingId === item.id}
                   className="bg-blue-600 hover:bg-blue-700 disabled:opacity-70 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors"
                 >
@@ -292,7 +312,7 @@ export default function OrganizerEntriesPage({ params }: OrganizerEntriesPagePro
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleReject(item.id)}
+                  onClick={() => handleOpenRejectModal(item.id)}
                   disabled={processingId === item.id}
                   className="bg-red-600 hover:bg-red-700 disabled:opacity-70 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors"
                 >
@@ -307,6 +327,100 @@ export default function OrganizerEntriesPage({ params }: OrganizerEntriesPagePro
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-sm text-gray-500">エントリー申請はありません。</div>
         )}
       </div>
+
+      {approveModalEntryId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={handleCloseApproveModal}>
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-bold text-gray-900">エントリー承認</h2>
+            <p className="mt-1 text-sm text-gray-600">開始時刻・終了時刻・出演順を必要に応じて入力してください。</p>
+
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="mb-1 block text-sm font-semibold text-gray-700">開始時刻（任意）</label>
+                <input
+                  type="time"
+                  value={approveStartTime}
+                  onChange={(e) => setApproveStartTime(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-semibold text-gray-700">終了時刻（任意）</label>
+                <input
+                  type="time"
+                  value={approveEndTime}
+                  onChange={(e) => setApproveEndTime(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-semibold text-gray-700">出演順（任意）</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={approveOrder}
+                  onChange={(e) => setApproveOrder(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={handleCloseApproveModal}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={handleApprove}
+                disabled={processingId === approveModalEntryId}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-70"
+              >
+                {processingId === approveModalEntryId ? "承認中..." : "承認する"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {rejectModalEntryId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={handleCloseRejectModal}>
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-bold text-gray-900">エントリー却下</h2>
+            <p className="mt-1 text-sm text-gray-600">却下理由を入力してください。</p>
+
+            <div className="mt-4">
+              <label className="mb-1 block text-sm font-semibold text-gray-700">却下理由</label>
+              <textarea
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                className="w-full min-h-24 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
+              />
+            </div>
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={handleCloseRejectModal}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={handleReject}
+                disabled={processingId === rejectModalEntryId}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-70"
+              >
+                {processingId === rejectModalEntryId ? "却下中..." : "却下する"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

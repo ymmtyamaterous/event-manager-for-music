@@ -17,6 +17,8 @@ export default function PerformerPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingBand, setIsSavingBand] = useState(false);
   const [entryEventId, setEntryEventId] = useState<string | null>(null);
+  const [entryModalEventId, setEntryModalEventId] = useState<string | null>(null);
+  const [entryMessage, setEntryMessage] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -131,21 +133,36 @@ export default function PerformerPage() {
     }
   };
 
-  const handleEntry = async (eventId: string) => {
+  const handleOpenEntryModal = (eventId: string) => {
+    setEntryModalEventId(eventId);
+    setEntryMessage("");
+    setError("");
+    setSuccess("");
+  };
+
+  const handleCloseEntryModal = () => {
+    setEntryModalEventId(null);
+  };
+
+  const handleEntry = async () => {
     if (!accessToken || !selectedBandId) {
       setError("先にバンドを作成して選択してください");
       return;
     }
-    const message = window.prompt("エントリー時に送るメッセージ（任意）", "") ?? "";
+    if (!entryModalEventId) {
+      return;
+    }
+    const message = entryMessage.trim();
 
     setError("");
     setSuccess("");
-    setEntryEventId(eventId);
+    setEntryEventId(entryModalEventId);
     try {
-      await createEntry(eventId, accessToken, selectedBandId, message);
+      await createEntry(entryModalEventId, accessToken, selectedBandId, message);
       const rows = await listBandEntries(selectedBandId, accessToken, entryStatusFilter || undefined);
       setBandEntries(rows ?? []);
       setSuccess("エントリー申請を送信しました");
+      setEntryModalEventId(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "エントリー申請に失敗しました");
     } finally {
@@ -249,7 +266,7 @@ export default function PerformerPage() {
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
                   type="button"
-                  onClick={() => handleEntry(event.id)}
+                  onClick={() => handleOpenEntryModal(event.id)}
                   disabled={bands.length === 0 || entryEventId === event.id || bandEntries.some((entry) => entry.eventId === event.id)}
                   className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors"
                 >
@@ -311,6 +328,42 @@ export default function PerformerPage() {
           {bandEntries.length === 0 && <p className="text-sm text-gray-500">申請済みエントリーはありません。</p>}
         </div>
       </section>
+
+      {entryModalEventId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={handleCloseEntryModal}>
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-bold text-gray-900">エントリー申請</h2>
+            <p className="mt-1 text-sm text-gray-600">申請時に送るメッセージを入力できます（任意）。</p>
+
+            <div className="mt-4">
+              <label className="mb-1 block text-sm font-semibold text-gray-700">申請メッセージ</label>
+              <textarea
+                value={entryMessage}
+                onChange={(e) => setEntryMessage(e.target.value)}
+                className="w-full min-h-24 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={handleCloseEntryModal}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={handleEntry}
+                disabled={entryEventId === entryModalEventId}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-70"
+              >
+                {entryEventId === entryModalEventId ? "申請中..." : "申請する"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
