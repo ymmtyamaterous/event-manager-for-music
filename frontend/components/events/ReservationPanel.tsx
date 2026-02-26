@@ -3,35 +3,16 @@
 import Link from "next/link";
 import { useState } from "react";
 import { createReservation } from "@/lib/api";
-import { APIUser } from "@/lib/api";
+import { useAuth } from "@/lib/useAuth";
 
 type ReservationPanelProps = {
   eventId: string;
 };
 
 export function ReservationPanel({ eventId }: ReservationPanelProps) {
+  const { accessToken, user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [accessToken] = useState(() => {
-    if (typeof window === "undefined") {
-      return "";
-    }
-    return localStorage.getItem("access_token") ?? "";
-  });
-  const [user] = useState<APIUser | null>(() => {
-    if (typeof window === "undefined") {
-      return null;
-    }
-    const rawUser = localStorage.getItem("user");
-    if (!rawUser) {
-      return null;
-    }
-    try {
-      return JSON.parse(rawUser) as APIUser;
-    } catch {
-      return null;
-    }
-  });
 
   const handleReserve = async () => {
     if (!accessToken) {

@@ -1,29 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { APIUser, listOrganizerEvents } from "@/lib/api";
+import { useEffect, useState } from "react";
+import { listOrganizerEvents } from "@/lib/api";
+import { useAuth } from "@/lib/useAuth";
 import { EventCard } from "@/types";
 
 export default function OrganizerPage() {
+  const { user } = useAuth();
   const [events, setEvents] = useState<EventCard[]>([]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-
-  const user = useMemo(() => {
-    if (typeof window === "undefined") {
-      return null;
-    }
-    const raw = localStorage.getItem("user");
-    if (!raw) {
-      return null;
-    }
-    try {
-      return JSON.parse(raw) as APIUser;
-    } catch {
-      return null;
-    }
-  }, []);
 
   useEffect(() => {
     const load = async () => {

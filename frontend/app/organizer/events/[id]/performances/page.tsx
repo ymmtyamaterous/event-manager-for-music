@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { DndContext, DragEndEvent, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { APIUser, deleteEventPerformance, listEventPerformances, updateEventPerformance } from "@/lib/api";
+import { deleteEventPerformance, listEventPerformances, updateEventPerformance } from "@/lib/api";
+import { useAuth } from "@/lib/useAuth";
 import { EventPerformance } from "@/types";
 
 type OrganizerPerformancesPageProps = {
@@ -12,6 +13,7 @@ type OrganizerPerformancesPageProps = {
 };
 
 export default function OrganizerPerformancesPage({ params }: OrganizerPerformancesPageProps) {
+  const { accessToken, user } = useAuth();
   const [eventId, setEventId] = useState("");
   const [items, setItems] = useState<EventPerformance[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -24,33 +26,11 @@ export default function OrganizerPerformancesPage({ params }: OrganizerPerforman
   const [editPerformanceOrder, setEditPerformanceOrder] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<EventPerformance | null>(null);
 
-  const accessToken = useMemo(() => {
-    if (typeof window === "undefined") {
-      return "";
-    }
-    return localStorage.getItem("access_token") ?? "";
-  }, []);
-
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 8 },
     }),
   );
-
-  const user = useMemo(() => {
-    if (typeof window === "undefined") {
-      return null;
-    }
-    const raw = localStorage.getItem("user");
-    if (!raw) {
-      return null;
-    }
-    try {
-      return JSON.parse(raw) as APIUser;
-    } catch {
-      return null;
-    }
-  }, []);
 
   useEffect(() => {
     const loadParams = async () => {

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { APIUser, downloadEventReservationsCsv, listEventReservations } from "@/lib/api";
+import { useEffect, useState } from "react";
+import { downloadEventReservationsCsv, listEventReservations } from "@/lib/api";
+import { useAuth } from "@/lib/useAuth";
 import { OrganizerReservation } from "@/types";
 
 type OrganizerReservationsPageProps = {
@@ -9,6 +10,7 @@ type OrganizerReservationsPageProps = {
 };
 
 export default function OrganizerReservationsPage({ params }: OrganizerReservationsPageProps) {
+  const { accessToken, user } = useAuth();
   const [eventId, setEventId] = useState("");
   const [status, setStatus] = useState<"" | "reserved" | "cancelled">("");
   const [searchWord, setSearchWord] = useState("");
@@ -16,28 +18,6 @@ export default function OrganizerReservationsPage({ params }: OrganizerReservati
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
-
-  const accessToken = useMemo(() => {
-    if (typeof window === "undefined") {
-      return "";
-    }
-    return localStorage.getItem("access_token") ?? "";
-  }, []);
-
-  const user = useMemo(() => {
-    if (typeof window === "undefined") {
-      return null;
-    }
-    const raw = localStorage.getItem("user");
-    if (!raw) {
-      return null;
-    }
-    try {
-      return JSON.parse(raw) as APIUser;
-    } catch {
-      return null;
-    }
-  }, []);
 
   useEffect(() => {
     const loadParams = async () => {

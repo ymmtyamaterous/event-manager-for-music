@@ -1,38 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { APIUser, cancelReservation, listMyReservations } from "@/lib/api";
+import { useEffect, useState } from "react";
+import { cancelReservation, listMyReservations } from "@/lib/api";
+import { useAuth } from "@/lib/useAuth";
 import { Reservation } from "@/types";
 
 export default function AudiencePage() {
+  const { accessToken, user } = useAuth();
   const [activeReservations, setActiveReservations] = useState<Reservation[]>([]);
   const [cancelledReservations, setCancelledReservations] = useState<Reservation[]>([]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isCancellingId, setIsCancellingId] = useState<string>("");
-
-  const accessToken = useMemo(() => {
-    if (typeof window === "undefined") {
-      return "";
-    }
-    return localStorage.getItem("access_token") ?? "";
-  }, []);
-
-  const user = useMemo(() => {
-    if (typeof window === "undefined") {
-      return null;
-    }
-    const raw = localStorage.getItem("user");
-    if (!raw) {
-      return null;
-    }
-    try {
-      return JSON.parse(raw) as APIUser;
-    } catch {
-      return null;
-    }
-  }, []);
 
   useEffect(() => {
     const load = async () => {

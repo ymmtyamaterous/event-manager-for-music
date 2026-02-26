@@ -1,8 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
-  APIUser,
   createSetlist,
   listBandMembers,
   listMyBands,
@@ -13,6 +12,7 @@ import {
   uploadBandProfileImage,
   deleteSetlist,
 } from "@/lib/api";
+import { useAuth } from "@/lib/useAuth";
 import { Band, BandMember, Setlist } from "@/types";
 
 type BandEditPageProps = {
@@ -38,27 +38,7 @@ export default function PerformerBandEditPage({ params }: BandEditPageProps) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const accessToken = useMemo(() => {
-    if (typeof window === "undefined") {
-      return "";
-    }
-    return localStorage.getItem("access_token") ?? "";
-  }, []);
-
-  const user = useMemo(() => {
-    if (typeof window === "undefined") {
-      return null;
-    }
-    const raw = localStorage.getItem("user");
-    if (!raw) {
-      return null;
-    }
-    try {
-      return JSON.parse(raw) as APIUser;
-    } catch {
-      return null;
-    }
-  }, []);
+  const { accessToken, user } = useAuth();
 
   useEffect(() => {
     const loadParams = async () => {

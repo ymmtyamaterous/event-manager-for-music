@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
-  APIUser,
   createBand,
   createEntry,
   createSetlist,
@@ -14,6 +13,7 @@ import {
   updateBand,
   uploadBandProfileImage,
 } from "@/lib/api";
+import { useAuth } from "@/lib/useAuth";
 import { Band, BandEntry, EventCard } from "@/types";
 
 export default function PerformerPage() {
@@ -38,34 +38,10 @@ export default function PerformerPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const accessToken = useMemo(() => {
-    if (typeof window === "undefined") {
-      return "";
-    }
-    return localStorage.getItem("access_token") ?? "";
-  }, []);
-
-  const user = useMemo(() => {
-    if (typeof window === "undefined") {
-      return null;
-    }
-    const raw = localStorage.getItem("user");
-    if (!raw) {
-      return null;
-    }
-    try {
-      return JSON.parse(raw) as APIUser;
-    } catch {
-      return null;
-    }
-  }, []);
+  const { accessToken, user } = useAuth();
 
   useEffect(() => {
     const load = async () => {
-      if (typeof window === "undefined") {
-        return;
-      }
-
       if (!user || !accessToken) {
         window.location.href = "/login";
         return;

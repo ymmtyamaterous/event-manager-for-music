@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { APIUser, approveEntry, listEventEntries, rejectEntry } from "@/lib/api";
+import { approveEntry, listEventEntries, rejectEntry } from "@/lib/api";
+import { useAuth } from "@/lib/useAuth";
 import { EventEntry } from "@/types";
 
 type OrganizerEntriesPageProps = {
@@ -9,6 +10,7 @@ type OrganizerEntriesPageProps = {
 };
 
 export default function OrganizerEntriesPage({ params }: OrganizerEntriesPageProps) {
+  const { accessToken, user } = useAuth();
   const [eventId, setEventId] = useState("");
   const [status, setStatus] = useState<"" | "pending" | "approved" | "rejected">("");
   const [searchWord, setSearchWord] = useState("");
@@ -23,28 +25,6 @@ export default function OrganizerEntriesPage({ params }: OrganizerEntriesPagePro
   const [approveOrder, setApproveOrder] = useState("");
   const [rejectModalEntryId, setRejectModalEntryId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
-
-  const accessToken = useMemo(() => {
-    if (typeof window === "undefined") {
-      return "";
-    }
-    return localStorage.getItem("access_token") ?? "";
-  }, []);
-
-  const user = useMemo(() => {
-    if (typeof window === "undefined") {
-      return null;
-    }
-    const raw = localStorage.getItem("user");
-    if (!raw) {
-      return null;
-    }
-    try {
-      return JSON.parse(raw) as APIUser;
-    } catch {
-      return null;
-    }
-  }, []);
 
   const filteredItems = useMemo(() => {
     const word = searchWord.trim().toLowerCase();

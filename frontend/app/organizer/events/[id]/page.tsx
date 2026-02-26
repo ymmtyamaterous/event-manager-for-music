@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { APIUser, deleteEvent, getEvent } from "@/lib/api";
+import { useEffect, useState } from "react";
+import { deleteEvent, getEvent } from "@/lib/api";
+import { useAuth } from "@/lib/useAuth";
 import { EventCard } from "@/types";
 
 type OrganizerEventDetailPageProps = {
@@ -10,34 +11,13 @@ type OrganizerEventDetailPageProps = {
 };
 
 export default function OrganizerEventDetailPage({ params }: OrganizerEventDetailPageProps) {
+  const { accessToken, user } = useAuth();
   const [eventId, setEventId] = useState("");
   const [event, setEvent] = useState<EventCard | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  const accessToken = useMemo(() => {
-    if (typeof window === "undefined") {
-      return "";
-    }
-    return localStorage.getItem("access_token") ?? "";
-  }, []);
-
-  const user = useMemo(() => {
-    if (typeof window === "undefined") {
-      return null;
-    }
-    const raw = localStorage.getItem("user");
-    if (!raw) {
-      return null;
-    }
-    try {
-      return JSON.parse(raw) as APIUser;
-    } catch {
-      return null;
-    }
-  }, []);
 
   useEffect(() => {
     const loadParams = async () => {

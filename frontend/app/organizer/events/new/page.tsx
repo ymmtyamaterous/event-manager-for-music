@@ -1,7 +1,8 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
-import { APIUser, createEvent } from "@/lib/api";
+import { FormEvent, useState } from "react";
+import { createEvent } from "@/lib/api";
+import { useAuth } from "@/lib/useAuth";
 
 type EventForm = {
   title: string;
@@ -32,31 +33,10 @@ const initialForm: EventForm = {
 };
 
 export default function NewOrganizerEventPage() {
+  const { accessToken, user } = useAuth();
   const [form, setForm] = useState<EventForm>(initialForm);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const accessToken = useMemo(() => {
-    if (typeof window === "undefined") {
-      return "";
-    }
-    return localStorage.getItem("access_token") ?? "";
-  }, []);
-
-  const user = useMemo(() => {
-    if (typeof window === "undefined") {
-      return null;
-    }
-    const raw = localStorage.getItem("user");
-    if (!raw) {
-      return null;
-    }
-    try {
-      return JSON.parse(raw) as APIUser;
-    } catch {
-      return null;
-    }
-  }, []);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();

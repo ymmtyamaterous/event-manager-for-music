@@ -1,7 +1,8 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
-import { APIUser, getEvent, resolveAssetUrl, updateEvent, uploadEventFlyerImage } from "@/lib/api";
+import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import { getEvent, resolveAssetUrl, updateEvent, uploadEventFlyerImage } from "@/lib/api";
+import { useAuth } from "@/lib/useAuth";
 
 type EventEditForm = {
   title: string;
@@ -29,6 +30,7 @@ export default function OrganizerEventEditPage({ params }: OrganizerEventEditPag
     return value.length >= 5 ? value.slice(0, 5) : value;
   };
 
+  const { accessToken, user } = useAuth();
   const [eventId, setEventId] = useState("");
   const [form, setForm] = useState<EventEditForm>({
     title: "",
@@ -49,28 +51,6 @@ export default function OrganizerEventEditPage({ params }: OrganizerEventEditPag
   const [isUploadingFlyer, setIsUploadingFlyer] = useState(false);
   const [selectedFlyerFile, setSelectedFlyerFile] = useState<File | null>(null);
   const [flyerPreviewUrl, setFlyerPreviewUrl] = useState("");
-
-  const accessToken = useMemo(() => {
-    if (typeof window === "undefined") {
-      return "";
-    }
-    return localStorage.getItem("access_token") ?? "";
-  }, []);
-
-  const user = useMemo(() => {
-    if (typeof window === "undefined") {
-      return null;
-    }
-    const raw = localStorage.getItem("user");
-    if (!raw) {
-      return null;
-    }
-    try {
-      return JSON.parse(raw) as APIUser;
-    } catch {
-      return null;
-    }
-  }, []);
 
   useEffect(() => {
     const loadParams = async () => {

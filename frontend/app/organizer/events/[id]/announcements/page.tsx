@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
-  APIUser,
   createEventAnnouncement,
   deleteEventAnnouncement,
   listEventAnnouncements,
   updateEventAnnouncement,
 } from "@/lib/api";
+import { useAuth } from "@/lib/useAuth";
 import { Announcement } from "@/types";
 
 type OrganizerAnnouncementsPageProps = {
@@ -15,6 +15,7 @@ type OrganizerAnnouncementsPageProps = {
 };
 
 export default function OrganizerAnnouncementsPage({ params }: OrganizerAnnouncementsPageProps) {
+  const { accessToken, user } = useAuth();
   const [eventId, setEventId] = useState("");
   const [items, setItems] = useState<Announcement[]>([]);
   const [title, setTitle] = useState("");
@@ -24,28 +25,6 @@ export default function OrganizerAnnouncementsPage({ params }: OrganizerAnnounce
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState("");
-
-  const accessToken = useMemo(() => {
-    if (typeof window === "undefined") {
-      return "";
-    }
-    return localStorage.getItem("access_token") ?? "";
-  }, []);
-
-  const user = useMemo(() => {
-    if (typeof window === "undefined") {
-      return null;
-    }
-    const raw = localStorage.getItem("user");
-    if (!raw) {
-      return null;
-    }
-    try {
-      return JSON.parse(raw) as APIUser;
-    } catch {
-      return null;
-    }
-  }, []);
 
   useEffect(() => {
     const loadParams = async () => {

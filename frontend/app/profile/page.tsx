@@ -1,7 +1,8 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { APIUser, getMe, resolveAssetUrl, updateMe, uploadProfileImage } from "@/lib/api";
+import { useAuth } from "@/lib/useAuth";
 
 type ProfileForm = {
   firstName: string;
@@ -25,12 +26,7 @@ export default function ProfilePage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const accessToken = useMemo(() => {
-    if (typeof window === "undefined") {
-      return "";
-    }
-    return localStorage.getItem("access_token") ?? "";
-  }, []);
+  const { accessToken } = useAuth();
 
   useEffect(() => {
     const load = async () => {
