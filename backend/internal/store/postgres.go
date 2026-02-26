@@ -204,6 +204,52 @@ func (s *PostgresStore) UpdateUser(userID string, firstName string, lastName str
 	return user, nil
 }
 
+func (s *PostgresStore) UpdateUserProfileImage(userID string, path string) (model.User, error) {
+	const q = `
+		UPDATE users
+		SET
+			profile_image_path = $2,
+			updated_at = NOW()
+		WHERE id = $1
+		RETURNING id, email, password_hash, first_name, last_name, display_name, user_type, profile_image_path, created_at, updated_at
+	`
+
+	trimmedPath := strings.TrimSpace(path)
+	if trimmedPath == "" {
+		return model.User{}, ErrConflict
+	}
+
+	var user model.User
+	var userType string
+	var profileImagePath sql.NullString
+	err := s.db.QueryRow(q, userID, trimmedPath).Scan(
+		&user.ID,
+		&user.Email,
+		&user.PasswordHash,
+		&user.FirstName,
+		&user.LastName,
+		&user.DisplayName,
+		&userType,
+		&profileImagePath,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return model.User{}, ErrNotFound
+	}
+	if err != nil {
+		return model.User{}, err
+	}
+
+	user.UserType = model.UserType(userType)
+	if profileImagePath.Valid {
+		v := profileImagePath.String
+		user.ProfileImagePath = &v
+	}
+
+	return user, nil
+}
+
 func (s *PostgresStore) ListBandsByOwner(userID string) ([]model.Band, error) {
 	const q = `
 		SELECT id, owner_id, name, genre, description, created_at, updated_at

@@ -266,6 +266,27 @@ func (s *MemoryStore) UpdateUser(userID string, firstName string, lastName strin
 	return user, nil
 }
 
+func (s *MemoryStore) UpdateUserProfileImage(userID string, path string) (model.User, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	user, exists := s.usersByID[userID]
+	if !exists {
+		return model.User{}, ErrNotFound
+	}
+
+	trimmedPath := strings.TrimSpace(path)
+	if trimmedPath == "" {
+		return model.User{}, ErrConflict
+	}
+
+	user.ProfileImagePath = &trimmedPath
+	user.UpdatedAt = nowInTokyo()
+	s.usersByID[userID] = user
+
+	return user, nil
+}
+
 func (s *MemoryStore) ListEvents(status string, search string, organizerID string) []model.Event {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

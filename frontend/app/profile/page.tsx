@@ -1,7 +1,7 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
-import { APIUser, getMe, updateMe } from "@/lib/api";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import { APIUser, getMe, resolveAssetUrl, updateMe, uploadProfileImage } from "@/lib/api";
 
 type ProfileForm = {
   firstName: string;
@@ -19,6 +19,9 @@ export default function ProfilePage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [profileImageUrl, setProfileImageUrl] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -58,6 +61,45 @@ export default function ProfilePage() {
       displayName: user.display_name ?? "",
       email: user.email ?? "",
     });
+    setProfileImageUrl(resolveAssetUrl(user.profile_image_path));
+  };
+
+  const handleSelectProfileImage = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      setSelectedImageFile(null);
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      setError("画像ファイルを選択してください");
+      setSelectedImageFile(null);
+      return;
+    }
+
+    setError("");
+    setSelectedImageFile(file);
+    setProfileImageUrl(URL.createObjectURL(file));
+  };
+
+  const handleUploadProfileImage = async () => {
+    if (!accessToken || !selectedImageFile) {
+      return;
+    }
+
+    setError("");
+    setSuccess("");
+    setIsUploadingImage(true);
+    try {
+      const updated = await uploadProfileImage(accessToken, selectedImageFile);
+      localStorage.setItem("user", JSON.stringify(updated));
+      setSelectedImageFile(null);
+      applyUserToForm(updated);
+      setSuccess("プロフィール画像を更新しました");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "プロフィール画像のアップロードに失敗しました");
+    } finally {
+      setIsUploadingImage(false);
+    }
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -92,6 +134,30 @@ export default function ProfilePage() {
 
       {error && <div className="mt-4 bg-red-50 text-red-700 border border-red-200 rounded-lg px-4 py-3 text-sm">{error}</div>}
       {success && <div className="mt-4 bg-green-50 text-green-700 border border-green-200 rounded-lg px-4 py-3 text-sm">{success}</div>}
+
+      <section className="mt-5 rounded-xl border border-gray-200 p-4">
+        <h2 className="text-sm font-semibold text-gray-700">プロフィール画像</h2>
+        <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center">
+          <div className="h-24 w-24 overflow-hidden rounded-full border border-gray-200 bg-gray-100">
+            {profileImageUrl ? (
+              <img src={profileImageUrl} alt="プロフィール画像" className="h-full w-full object-cover" />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-xs text-gray-500">未設定</div>
+            )}
+          </div>
+          <div className="flex-1 space-y-2">
+            <input type="file" accept="image/*" onChange={handleSelectProfileImage} className="block w-full text-sm text-gray-700" />
+            <button
+              type="button"
+              onClick={handleUploadProfileImage}
+              disabled={!selectedImageFile || isUploadingImage}
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-70"
+            >
+              {isUploadingImage ? "アップロード中..." : "画像をアップロード"}
+            </button>
+          </div>
+        </div>
+      </section>
 
       <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

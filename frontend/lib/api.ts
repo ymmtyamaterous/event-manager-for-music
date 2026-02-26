@@ -12,6 +12,7 @@ import {
 } from "@/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000/api/v1";
+const API_ORIGIN = API_BASE.replace(/\/api\/v1\/?$/, "");
 
 type APIErrorResponse = {
   error: string;
@@ -292,6 +293,37 @@ export async function updateMe(accessToken: string, input: UpdateMeInput): Promi
       email: input.email,
     }),
   });
+}
+
+export async function uploadProfileImage(accessToken: string, file: File): Promise<APIUser> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch(`${API_BASE}/users/me/profile-image`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: formData,
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const data = (await response.json().catch(() => null)) as APIErrorResponse | null;
+    throw new Error(data?.error ?? "APIリクエストに失敗しました");
+  }
+
+  return (await response.json()) as APIUser;
+}
+
+export function resolveAssetUrl(path: string | null | undefined): string {
+  if (!path) {
+    return "";
+  }
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    return path;
+  }
+  return `${API_ORIGIN}${path}`;
 }
 
 export async function listMyReservations(accessToken: string, status?: "reserved" | "cancelled"): Promise<Reservation[]> {

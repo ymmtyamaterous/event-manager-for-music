@@ -9,6 +9,8 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -29,6 +31,7 @@ type healthResponse struct {
 type app struct {
 	store      store.Repository
 	jwtManager *auth.JWTManager
+	uploadDir  string
 }
 
 type loginRequest struct {
@@ -147,9 +150,11 @@ func NewServer(cfg config.Config) *Server {
 	app := &app{
 		store:      repository,
 		jwtManager: auth.NewJWTManager(cfg.JWTSecret),
+		uploadDir:  cfg.UploadDir,
 	}
 
 	mux := http.NewServeMux()
+	mux.Handle("/uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(cfg.UploadDir))))
 
 	mux.HandleFunc("GET /api/v1/health", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, healthResponse{Status: "ok"})
@@ -159,6 +164,7 @@ func NewServer(cfg config.Config) *Server {
 	mux.HandleFunc("POST /api/v1/auth/refresh", app.handleRefresh)
 	mux.HandleFunc("GET /api/v1/users/me", app.handleGetMe)
 	mux.HandleFunc("PATCH /api/v1/users/me", app.handlePatchMe)
+	mux.HandleFunc("POST /api/v1/users/me/profile-image", app.handleUploadProfileImage)
 	mux.HandleFunc("GET /api/v1/bands/me", app.handleListMyBands)
 	mux.HandleFunc("GET /api/v1/bands/{id}/entries", app.handleListBandEntries)
 	mux.HandleFunc("POST /api/v1/bands", app.handleCreateBand)
@@ -365,6 +371,92 @@ func (a *app) handlePatchMe(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusNotFound, "ユーザーが存在しません")
 		case errors.Is(err, store.ErrConflict):
 			writeError(w, http.StatusConflict, "このメールアドレスは既に使用されています")
+		default:
+			writeError(w, http.StatusInternalServerError, "サーバーエラー")
+		}
+		return
+	}
+
+	writeJSON(w, http.StatusOK, sanitizeUser(updatedUser))
+}
+
+func (a *app) handleUploadProfileImage(w http.ResponseWriter, r *http.Request) {
+	claims, err := a.parseAccessTokenFromHeader(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	if err := r.ParseMultipartForm(5 << 20); err != nil {
+		writeError(w, http.StatusBadRequest, "multipart/form-data で file を送信してください")
+		return
+	}
+
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "file は必須です")
+		return
+	}
+	defer file.Close()
+
+	if header.Size > 5<<20 {
+		writeError(w, http.StatusBadRequest, "ファイルサイズは5MB以下にしてください")
+		return
+	}
+
+	if err := os.MkdirAll(a.uploadDir, 0o755); err != nil {
+		writeError(w, http.StatusInternalServerError, "アップロード先ディレクトリの作成に失敗しました")
+		return
+	}
+
+	sniff := make([]byte, 512)
+	readN, readErr := io.ReadFull(file, sniff)
+	if readErr != nil && !errors.Is(readErr, io.EOF) && !errors.Is(readErr, io.ErrUnexpectedEOF) {
+		writeError(w, http.StatusBadRequest, "画像ファイルの読み取りに失敗しました")
+		return
+	}
+
+	contentType := http.DetectContentType(sniff[:readN])
+	if !strings.HasPrefix(contentType, "image/") {
+		writeError(w, http.StatusBadRequest, "画像ファイルのみアップロードできます")
+		return
+	}
+
+	ext := imageExtensionFromContentType(contentType)
+	if ext == "" {
+		ext = strings.ToLower(filepath.Ext(header.Filename))
+	}
+	if !isSupportedImageExt(ext) {
+		writeError(w, http.StatusBadRequest, "対応していない画像形式です")
+		return
+	}
+
+	filename := fmt.Sprintf("profile_%s_%d%s", claims.UserID, time.Now().UnixNano(), ext)
+	absPath := filepath.Join(a.uploadDir, filename)
+
+	dst, err := os.Create(absPath)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "画像ファイルの保存に失敗しました")
+		return
+	}
+	defer dst.Close()
+
+	if _, err := dst.Write(sniff[:readN]); err != nil {
+		writeError(w, http.StatusInternalServerError, "画像ファイルの保存に失敗しました")
+		return
+	}
+	if _, err := io.Copy(dst, file); err != nil {
+		writeError(w, http.StatusInternalServerError, "画像ファイルの保存に失敗しました")
+		return
+	}
+
+	publicPath := "/uploads/" + filename
+	updatedUser, err := a.store.UpdateUserProfileImage(claims.UserID, publicPath)
+	if err != nil {
+		_ = os.Remove(absPath)
+		switch {
+		case errors.Is(err, store.ErrNotFound):
+			writeError(w, http.StatusNotFound, "ユーザーが存在しません")
 		default:
 			writeError(w, http.StatusInternalServerError, "サーバーエラー")
 		}
@@ -1199,6 +1291,30 @@ func parseRegisterUserType(value string) (model.UserType, error) {
 func sanitizeUser(user model.User) model.User {
 	user.PasswordHash = ""
 	return user
+}
+
+func imageExtensionFromContentType(contentType string) string {
+	switch contentType {
+	case "image/jpeg":
+		return ".jpg"
+	case "image/png":
+		return ".png"
+	case "image/gif":
+		return ".gif"
+	case "image/webp":
+		return ".webp"
+	default:
+		return ""
+	}
+}
+
+func isSupportedImageExt(ext string) bool {
+	switch strings.ToLower(ext) {
+	case ".jpg", ".jpeg", ".png", ".gif", ".webp":
+		return true
+	default:
+		return false
+	}
 }
 
 func writeJSON(w http.ResponseWriter, status int, body any) {
