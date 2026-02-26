@@ -332,11 +332,11 @@ func (s *PostgresStore) UpdateBand(bandID string, userID string, name *string, g
 	const q = `
 		UPDATE bands
 		SET
-			name = CASE WHEN $3 IS NULL THEN name ELSE COALESCE(NULLIF($3, ''), name) END,
-			genre = CASE WHEN $4 IS NULL THEN genre ELSE NULLIF($4, '') END,
-			description = CASE WHEN $5 IS NULL THEN description ELSE NULLIF($5, '') END,
+			name = CASE WHEN $3::text IS NULL THEN name ELSE COALESCE(NULLIF($3::text, ''), name) END,
+			genre = CASE WHEN $4::text IS NULL THEN genre ELSE NULLIF($4::text, '') END,
+			description = CASE WHEN $5::text IS NULL THEN description ELSE NULLIF($5::text, '') END,
 			formed_year = CASE WHEN $6 IS NULL OR $6 <= 0 THEN formed_year ELSE $6 END,
-			twitter_url = CASE WHEN $7 IS NULL THEN twitter_url ELSE NULLIF($7, '') END,
+			twitter_url = CASE WHEN $7::text IS NULL THEN twitter_url ELSE NULLIF($7::text, '') END,
 			updated_at = NOW()
 		WHERE id = $1 AND owner_id = $2
 		RETURNING id, owner_id, name, profile_image_path, genre, formed_year, description, twitter_url, created_at, updated_at
@@ -839,18 +839,18 @@ func (s *PostgresStore) UpdateEvent(input model.UpdateEventInput) (model.Event, 
 	const q = `
 		UPDATE events
 		SET
-			title = COALESCE(NULLIF($2, ''), title),
-			description = CASE WHEN $3 IS NULL THEN description ELSE $3 END,
-			flyer_image_path = CASE WHEN $4 IS NULL THEN flyer_image_path ELSE $4 END,
-			venue_name = COALESCE(NULLIF($5, ''), venue_name),
-			venue_address = COALESCE(NULLIF($6, ''), venue_address),
-			event_date = CASE WHEN $7 IS NULL THEN event_date ELSE $7::date END,
-			doors_open_time = CASE WHEN $8 IS NULL THEN doors_open_time ELSE $8::time END,
-			start_time = CASE WHEN $9 IS NULL THEN start_time ELSE $9::time END,
-			end_time = CASE WHEN $10 IS NULL THEN end_time ELSE $10::time END,
+			title = COALESCE(NULLIF($2::text, ''), title),
+			description = CASE WHEN $3::text IS NULL THEN description ELSE $3::text END,
+			flyer_image_path = CASE WHEN $4::text IS NULL THEN flyer_image_path ELSE $4::text END,
+			venue_name = COALESCE(NULLIF($5::text, ''), venue_name),
+			venue_address = COALESCE(NULLIF($6::text, ''), venue_address),
+			event_date = CASE WHEN $7::text IS NULL THEN event_date ELSE $7::text::date END,
+			doors_open_time = CASE WHEN $8::text IS NULL THEN doors_open_time ELSE $8::text::time END,
+			start_time = CASE WHEN $9::text IS NULL THEN start_time ELSE $9::text::time END,
+			end_time = CASE WHEN $10::text IS NULL THEN end_time ELSE $10::text::time END,
 			ticket_price = COALESCE($11, ticket_price),
 			capacity = COALESCE($12, capacity),
-			status = CASE WHEN $13 IS NULL THEN status ELSE $13::event_status END,
+			status = CASE WHEN $13::text IS NULL THEN status ELSE $13::text::event_status END,
 			updated_at = NOW()
 		WHERE id = $1
 		RETURNING id, organizer_id, title, description, flyer_image_path, venue_name, venue_address, event_date, doors_open_time, start_time, end_time, ticket_price, capacity, status, created_at, updated_at
@@ -2109,16 +2109,18 @@ func scanPerformance(scanner performanceScanner) (model.Performance, bool) {
 	return performance, true
 }
 
-func stringOrNil(value *string) any {
+func stringOrNil(value *string) *string {
 	if value == nil {
 		return nil
 	}
-	return strings.TrimSpace(*value)
+	trimmed := strings.TrimSpace(*value)
+	return &trimmed
 }
 
-func statusOrNil(status *model.EventStatus) any {
+func statusOrNil(status *model.EventStatus) *string {
 	if status == nil {
 		return nil
 	}
-	return string(*status)
+	s := string(*status)
+	return &s
 }

@@ -1238,6 +1238,7 @@ func (a *app) handleUpdateEvent(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, store.ErrNotFound):
 			writeError(w, http.StatusNotFound, "イベントが存在しません")
 		default:
+			log.Printf("handleUpdateEvent error: %v", err)
 			writeError(w, http.StatusInternalServerError, "サーバーエラー")
 		}
 		return
