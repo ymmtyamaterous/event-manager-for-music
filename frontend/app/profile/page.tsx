@@ -140,7 +140,7 @@ export default function ProfilePage() {
         <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center">
           <div className="h-24 w-24 overflow-hidden rounded-full border border-gray-200 bg-gray-100">
             {profileImageUrl ? (
-              <img src={profileImageUrl} alt="プロフィール画像" className="h-full w-full object-cover" />
+              <div className="h-full w-full bg-cover bg-center" style={{ backgroundImage: `url(${profileImageUrl})` }} aria-label="プロフィール画像" />
             ) : (
               <div className="flex h-full w-full items-center justify-center text-xs text-gray-500">未設定</div>
             )}
