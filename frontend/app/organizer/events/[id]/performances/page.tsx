@@ -1,6 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { DndContext, DragEndEvent, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
+import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { APIUser, deleteEventPerformance, listEventPerformances, updateEventPerformance } from "@/lib/api";
 import { EventPerformance } from "@/types";
 
@@ -13,6 +16,7 @@ export default function OrganizerPerformancesPage({ params }: OrganizerPerforman
   const [items, setItems] = useState<EventPerformance[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [isReordering, setIsReordering] = useState(false);
   const [error, setError] = useState("");
   const [editTarget, setEditTarget] = useState<EventPerformance | null>(null);
   const [editStartTime, setEditStartTime] = useState("");
@@ -26,6 +30,12 @@ export default function OrganizerPerformancesPage({ params }: OrganizerPerforman
     }
     return localStorage.getItem("access_token") ?? "";
   }, []);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+  );
 
   const user = useMemo(() => {
     if (typeof window === "undefined") {
@@ -156,6 +166,55 @@ export default function OrganizerPerformancesPage({ params }: OrganizerPerforman
     }
   };
 
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) {
+      return;
+    }
+
+    const oldIndex = items.findIndex((item) => item.id === active.id);
+    const newIndex = items.findIndex((item) => item.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) {
+      return;
+    }
+
+    const previousItems = items;
+    const previousOrderMap = new Map(previousItems.map((item) => [item.id, item.performanceOrder]));
+
+    const reorderedItems = arrayMove(items, oldIndex, newIndex).map((item, index) => ({
+      ...item,
+      performanceOrder: index + 1,
+    }));
+
+    setItems(reorderedItems);
+
+    if (!accessToken || !eventId) {
+      setItems(previousItems);
+      return;
+    }
+
+    setError("");
+    setIsReordering(true);
+    try {
+      for (const item of reorderedItems) {
+        const previousOrder = previousOrderMap.get(item.id);
+        if (previousOrder === item.performanceOrder) {
+          continue;
+        }
+
+        await updateEventPerformance(eventId, item.id, accessToken, {
+          performanceOrder: item.performanceOrder,
+        });
+      }
+      await reload();
+    } catch (err) {
+      setItems(previousItems);
+      setError(err instanceof Error ? err.message : "並び替えの保存に失敗しました");
+    } finally {
+      setIsReordering(false);
+    }
+  };
+
   if (isLoading) {
     return <p className="text-sm text-gray-600">読み込み中...</p>;
   }
@@ -164,44 +223,25 @@ export default function OrganizerPerformancesPage({ params }: OrganizerPerforman
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">出演タイムテーブル管理</h1>
-        <p className="mt-1 text-sm text-gray-600">出演順・開始/終了時刻を編集できます。</p>
+        <p className="mt-1 text-sm text-gray-600">出演順・開始/終了時刻を編集できます。カードをドラッグして並び替えできます。</p>
       </div>
 
       {error && <div className="bg-red-50 text-red-700 border border-red-200 rounded-lg px-4 py-3 text-sm">{error}</div>}
 
       <div className="space-y-3">
-        {items.map((item) => (
-          <article key={item.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">
-                  {item.performanceOrder}. {item.bandName}
-                </h2>
-                <p className="mt-1 text-sm text-gray-600">
-                  {item.startTime ?? "--:--"} - {item.endTime ?? "--:--"}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => openEditModal(item)}
-                  disabled={processingId === item.id}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-70 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors"
-                >
-                  編集
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDeleteTarget(item)}
-                  disabled={processingId === item.id}
-                  className="bg-red-600 hover:bg-red-700 disabled:opacity-70 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors"
-                >
-                  削除
-                </button>
-              </div>
-            </div>
-          </article>
-        ))}
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={items.map((item) => item.id)} strategy={verticalListSortingStrategy}>
+            {items.map((item) => (
+              <SortablePerformanceCard
+                key={item.id}
+                item={item}
+                disabled={isReordering || processingId === item.id}
+                onEdit={openEditModal}
+                onDelete={setDeleteTarget}
+              />
+            ))}
+          </SortableContext>
+        </DndContext>
 
         {items.length === 0 && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-sm text-gray-500">出演情報がありません。</div>
@@ -308,5 +348,73 @@ export default function OrganizerPerformancesPage({ params }: OrganizerPerforman
         </div>
       )}
     </div>
+  );
+}
+
+type SortablePerformanceCardProps = {
+  item: EventPerformance;
+  disabled: boolean;
+  onEdit: (item: EventPerformance) => void;
+  onDelete: (item: EventPerformance) => void;
+};
+
+function SortablePerformanceCard({ item, disabled, onEdit, onDelete }: SortablePerformanceCardProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: item.id,
+    disabled,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <article
+      ref={setNodeRef}
+      style={style}
+      className={`rounded-xl border border-gray-100 bg-white p-4 shadow-sm ${isDragging ? "opacity-70" : ""}`}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <button
+            type="button"
+            {...attributes}
+            {...listeners}
+            disabled={disabled}
+            className="mt-1 cursor-grab rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-600 active:cursor-grabbing disabled:opacity-40"
+            aria-label="ドラッグして並び替え"
+          >
+            ⠿
+          </button>
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">
+              {item.performanceOrder}. {item.bandName}
+            </h2>
+            <p className="mt-1 text-sm text-gray-600">
+              {item.startTime ?? "--:--"} - {item.endTime ?? "--:--"}
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => onEdit(item)}
+            disabled={disabled}
+            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-70"
+          >
+            編集
+          </button>
+          <button
+            type="button"
+            onClick={() => onDelete(item)}
+            disabled={disabled}
+            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-70"
+          >
+            削除
+          </button>
+        </div>
+      </div>
+    </article>
   );
 }
