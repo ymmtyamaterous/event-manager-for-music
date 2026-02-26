@@ -10,7 +10,7 @@ import (
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, "usage: go run ./cmd/migrate [up|down]")
+		fmt.Fprintln(os.Stderr, "usage: go run ./cmd/migrate [up|down|seed|unseed]")
 		os.Exit(1)
 	}
 

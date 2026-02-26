@@ -51,13 +51,17 @@ func Run(direction string, databaseURL string) error {
 		return runUp(ctx, db)
 	case "down":
 		return runDown(ctx, db)
+	case "seed":
+		return runSeed(ctx, db)
+	case "unseed":
+		return runUnseed(ctx, db)
 	default:
-		return fmt.Errorf("不正な引数です。up か down を指定してください")
+		return fmt.Errorf("不正な引数です。up / down / seed / unseed のいずれかを指定してください")
 	}
 }
 
 func runUp(ctx context.Context, db *sql.DB) error {
-	migrations, err := loadUpMigrations("migrations")
+	migrations, err := loadMigrations("migrations", false)
 	if err != nil {
 		return err
 	}
@@ -75,6 +79,66 @@ func runUp(ctx context.Context, db *sql.DB) error {
 		if err := applyOne(ctx, db, m); err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func runSeed(ctx context.Context, db *sql.DB) error {
+	migrations, err := loadMigrations("migrations", true)
+	if err != nil {
+		return err
+	}
+
+	applied, err := getAppliedMap(ctx, db)
+	if err != nil {
+		return err
+	}
+
+	for _, m := range migrations {
+		if applied[m.Name] {
+			continue
+		}
+
+		if err := applyOne(ctx, db, m); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func runUnseed(ctx context.Context, db *sql.DB) error {
+	name, version, err := latestAppliedSeed(ctx, db)
+	if err != nil {
+		return err
+	}
+
+	if name == "" {
+		return nil
+	}
+
+	downSQL, err := loadDownSQL("migrations", name)
+	if err != nil {
+		return err
+	}
+
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("トランザクション開始に失敗しました: %w", err)
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.ExecContext(ctx, downSQL); err != nil {
+		return fmt.Errorf("unseed適用に失敗しました (%s): %w", name, err)
+	}
+
+	if _, err := tx.ExecContext(ctx, `DELETE FROM schema_migrations WHERE version = $1`, version); err != nil {
+		return fmt.Errorf("schema_migrations更新に失敗しました: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("トランザクションコミットに失敗しました: %w", err)
 	}
 
 	return nil
@@ -197,7 +261,32 @@ func latestApplied(ctx context.Context, db *sql.DB) (string, int, error) {
 	return name, version, nil
 }
 
-func loadUpMigrations(dir string) ([]migration, error) {
+func latestAppliedSeed(ctx context.Context, db *sql.DB) (string, int, error) {
+	rows, err := db.QueryContext(ctx, `SELECT name, version FROM schema_migrations ORDER BY version DESC`)
+	if err != nil {
+		return "", 0, fmt.Errorf("最新seed migration取得に失敗しました: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var name string
+		var version int
+		if err := rows.Scan(&name, &version); err != nil {
+			return "", 0, err
+		}
+		if isSeedMigration(name) {
+			return name, version, nil
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return "", 0, err
+	}
+
+	return "", 0, nil
+}
+
+func loadMigrations(dir string, onlySeed bool) ([]migration, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, fmt.Errorf("migrationsディレクトリ読み込みに失敗しました: %w", err)
@@ -211,6 +300,13 @@ func loadUpMigrations(dir string) ([]migration, error) {
 
 		name := entry.Name()
 		if strings.HasSuffix(name, ".down.sql") {
+			continue
+		}
+
+		if onlySeed && !isSeedMigration(name) {
+			continue
+		}
+		if !onlySeed && isSeedMigration(name) {
 			continue
 		}
 
@@ -236,6 +332,10 @@ func loadUpMigrations(dir string) ([]migration, error) {
 	})
 
 	return result, nil
+}
+
+func isSeedMigration(fileName string) bool {
+	return strings.Contains(strings.ToLower(fileName), "_seed_")
 }
 
 func loadDownSQL(dir string, upFileName string) (string, error) {
