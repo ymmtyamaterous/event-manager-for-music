@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { APIUser } from "@/lib/api";
 
@@ -31,21 +31,18 @@ function getRoleNavItems(user: APIUser | null): NavItem[] {
 
 export function Header() {
   const router = useRouter();
-  const [user, setUser] = useState<APIUser | null>(() => {
-    if (typeof window === "undefined") {
-      return null;
-    }
-    const raw = localStorage.getItem("user");
-    if (!raw) {
-      return null;
-    }
-    try {
-      return JSON.parse(raw) as APIUser;
-    } catch {
-      return null;
-    }
-  });
+  const [user, setUser] = useState<APIUser | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const raw = localStorage.getItem("user");
+    if (!raw) return;
+    try {
+      setUser(JSON.parse(raw) as APIUser);
+    } catch {
+      // ignore
+    }
+  }, []);
 
   const navItems = useMemo(() => getRoleNavItems(user), [user]);
 
