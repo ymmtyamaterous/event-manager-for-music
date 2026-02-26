@@ -16,26 +16,24 @@ type AuthState = {
  * 一致し、ハイドレーションエラーを防ぐ。
  */
 export function useAuth(): AuthState {
-  const [accessToken] = useState(() => {
-    if (typeof window === "undefined") return "";
-    return localStorage.getItem("access_token") ?? "";
-  });
-  const [user] = useState<APIUser | null>(() => {
-    if (typeof window === "undefined") return null;
-    const raw = localStorage.getItem("user");
-    if (!raw) return null;
-    try {
-      return JSON.parse(raw) as APIUser;
-    } catch {
-      return null;
-    }
-  });
+  const [accessToken, setAccessToken] = useState("");
+  const [user, setUser] = useState<APIUser | null>(null);
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    // isReady はクライアントマウント後にのみ true にするための意図的な setState
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // localStorage はブラウザ専用APIのため、マウント後に読み込む（ハイドレーションエラー防止）
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setAccessToken(localStorage.getItem("access_token") ?? "");
+    const raw = localStorage.getItem("user");
+    if (raw) {
+      try {
+        setUser(JSON.parse(raw) as APIUser);
+      } catch {
+        // ignore
+      }
+    }
     setIsReady(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
   return { accessToken, user, isReady };
