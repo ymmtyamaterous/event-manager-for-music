@@ -1,3 +1,4 @@
 .env
 tmp
 backend/api
+backend/uploads
