@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -1311,10 +1312,10 @@ type performanceScanner interface {
 func scanEvent(scanner eventScanner) (model.Event, error) {
 	var event model.Event
 	var description sql.NullString
-	var eventDate sql.NullTime
-	var doorsOpenTime sql.NullTime
-	var startTime sql.NullTime
-	var endTime sql.NullTime
+	var eventDate any
+	var doorsOpenTime any
+	var startTime any
+	var endTime any
 	var ticketPrice sql.NullInt32
 	var capacity sql.NullInt32
 	var status string
@@ -1340,21 +1341,34 @@ func scanEvent(scanner eventScanner) (model.Event, error) {
 		return model.Event{}, err
 	}
 
-	if eventDate.Valid {
-		event.EventDate = eventDate.Time.Format("2006-01-02")
-	}
 	if description.Valid {
 		v := description.String
 		event.Description = &v
 	}
-	if doorsOpenTime.Valid {
-		event.DoorsOpenTime = doorsOpenTime.Time.Format("15:04")
+
+	formattedEventDate, err := formatDateValue(eventDate)
+	if err != nil {
+		return model.Event{}, err
 	}
-	if startTime.Valid {
-		event.StartTime = startTime.Time.Format("15:04")
+	event.EventDate = formattedEventDate
+
+	formattedDoorsOpenTime, err := formatClockValue(doorsOpenTime)
+	if err != nil {
+		return model.Event{}, err
 	}
-	if endTime.Valid {
-		formatted := endTime.Time.Format("15:04")
+	event.DoorsOpenTime = formattedDoorsOpenTime
+
+	formattedStartTime, err := formatClockValue(startTime)
+	if err != nil {
+		return model.Event{}, err
+	}
+	event.StartTime = formattedStartTime
+
+	if endTime != nil {
+		formatted, err := formatClockValue(endTime)
+		if err != nil {
+			return model.Event{}, err
+		}
 		event.EndTime = &formatted
 	}
 	if ticketPrice.Valid {
@@ -1368,6 +1382,46 @@ func scanEvent(scanner eventScanner) (model.Event, error) {
 	event.Status = model.EventStatus(status)
 
 	return event, nil
+}
+
+func formatDateValue(value any) (string, error) {
+	switch v := value.(type) {
+	case time.Time:
+		return v.Format("2006-01-02"), nil
+	case string:
+		if len(v) >= 10 {
+			return v[:10], nil
+		}
+		return "", fmt.Errorf("date形式が不正です: %s", v)
+	case []byte:
+		s := string(v)
+		if len(s) >= 10 {
+			return s[:10], nil
+		}
+		return "", fmt.Errorf("date形式が不正です: %s", s)
+	default:
+		return "", fmt.Errorf("date型の変換に失敗しました: %T", value)
+	}
+}
+
+func formatClockValue(value any) (string, error) {
+	switch v := value.(type) {
+	case time.Time:
+		return v.Format("15:04"), nil
+	case string:
+		if len(v) >= 5 {
+			return v[:5], nil
+		}
+		return "", fmt.Errorf("time形式が不正です: %s", v)
+	case []byte:
+		s := string(v)
+		if len(s) >= 5 {
+			return s[:5], nil
+		}
+		return "", fmt.Errorf("time形式が不正です: %s", s)
+	default:
+		return "", fmt.Errorf("time型の変換に失敗しました: %T", value)
+	}
 }
 
 func isUniqueViolation(err error) bool {
