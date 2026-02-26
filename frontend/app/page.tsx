@@ -1,7 +1,45 @@
+"use client";
+
 import Link from "next/link";
-import { featuredEvents } from "@/lib/mock-data";
+import { useEffect, useState } from "react";
+import { listEvents } from "@/lib/api";
+import { EventCard } from "@/types";
 
 export default function Home() {
+  const [events, setEvents] = useState<EventCard[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let isActive = true;
+
+    const load = async () => {
+      setIsLoading(true);
+      setError("");
+      try {
+        const rows = await listEvents("");
+        if (isActive) {
+          setEvents((rows ?? []).slice(0, 3));
+        }
+      } catch (err) {
+        if (isActive) {
+          setEvents([]);
+          setError(err instanceof Error ? err.message : "イベント取得に失敗しました");
+        }
+      } finally {
+        if (isActive) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void load();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
   return (
     <div className="space-y-12 py-8">
       <section className="rounded-2xl bg-linear-to-br from-blue-600 to-purple-700 px-6 py-14 text-white md:px-12">
@@ -54,26 +92,35 @@ export default function Home() {
             すべて見る
           </Link>
         </div>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {featuredEvents.map((event) => (
-            <Link
-              key={event.id}
-              href={`/events/${event.id}`}
-              className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow"
-            >
-              <div className="mb-2 inline-flex rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-800">
-                予約受付中
-              </div>
-              <h3 className="text-lg font-bold text-gray-900">{event.title}</h3>
-              <p className="mt-1 text-sm text-gray-600 line-clamp-2">{event.description}</p>
-              <div className="mt-3 text-sm text-gray-700">
-                <p>📅 {event.eventDate}</p>
-                <p>📍 {event.venueName}</p>
-                <p>🎫 {event.ticketPrice ? `${event.ticketPrice.toLocaleString()}円` : "未定"}</p>
-              </div>
-            </Link>
-          ))}
-        </div>
+
+        {isLoading ? (
+          <p className="text-sm text-gray-600">読み込み中...</p>
+        ) : error ? (
+          <p className="text-sm text-red-600">イベントの取得に失敗しました。</p>
+        ) : events.length === 0 ? (
+          <p className="text-sm text-gray-600">現在公開中のイベントはありません。</p>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {events.map((event) => (
+              <Link
+                key={event.id}
+                href={`/events/${event.id}`}
+                className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow"
+              >
+                <div className="mb-2 inline-flex rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-800">
+                  予約受付中
+                </div>
+                <h3 className="text-lg font-bold text-gray-900">{event.title}</h3>
+                <p className="mt-1 line-clamp-2 text-sm text-gray-600">{event.description}</p>
+                <div className="mt-3 text-sm text-gray-700">
+                  <p>📅 {event.eventDate}</p>
+                  <p>📍 {event.venueName}</p>
+                  <p>🎫 {event.ticketPrice ? `${event.ticketPrice.toLocaleString()}円` : "未定"}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );

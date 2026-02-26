@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { featuredEvents } from "@/lib/mock-data";
 import { getEvent, listEventAnnouncements, listEventPerformances } from "@/lib/api";
 import { Announcement, EventCard, EventPerformance } from "@/types";
 import { ReservationPanel } from "@/components/events/ReservationPanel";
@@ -18,7 +17,7 @@ export default async function EventDetailPage({ params }: EventDetailPageProps) 
   try {
     event = await getEvent(id);
   } catch {
-    event = featuredEvents.find((item) => item.id === id);
+    event = undefined;
   }
 
   if (!event) {

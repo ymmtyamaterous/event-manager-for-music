@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { featuredEvents } from "@/lib/mock-data";
 import { listEvents } from "@/lib/api";
 import { EventCard } from "@/types";
 
 export default function EventsPage() {
   const [searchWord, setSearchWord] = useState("");
-  const [eventsFromAPI, setEventsFromAPI] = useState<EventCard[]>(featuredEvents);
+  const [eventsFromAPI, setEventsFromAPI] = useState<EventCard[]>([]);
 
   useEffect(() => {
     let isActive = true;
@@ -21,7 +20,7 @@ export default function EventsPage() {
         }
       } catch {
         if (isActive) {
-          setEventsFromAPI(featuredEvents);
+          setEventsFromAPI([]);
         }
       }
     };

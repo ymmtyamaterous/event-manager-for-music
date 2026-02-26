@@ -461,8 +461,8 @@ func (s *PostgresStore) ListEvents(status string, search string, organizerID str
 
 	result := make([]model.Event, 0)
 	for rows.Next() {
-		event, ok := scanEvent(rows)
-		if ok {
+		event, err := scanEvent(rows)
+		if err == nil {
 			result = append(result, event)
 		}
 	}
@@ -480,7 +480,7 @@ func (s *PostgresStore) CreateEvent(input model.CreateEventInput) (model.Event, 
 		RETURNING id, organizer_id, title, description, venue_name, venue_address, event_date, doors_open_time, start_time, end_time, ticket_price, capacity, status, created_at, updated_at
 	`
 
-	event, ok := scanEvent(s.db.QueryRow(
+	event, err := scanEvent(s.db.QueryRow(
 		q,
 		input.OrganizerID,
 		input.Title,
@@ -495,8 +495,14 @@ func (s *PostgresStore) CreateEvent(input model.CreateEventInput) (model.Event, 
 		input.Capacity,
 		string(input.Status),
 	))
-	if !ok {
-		return model.Event{}, ErrNotFound
+	if err != nil {
+		if isForeignKeyViolation(err) {
+			return model.Event{}, ErrNotFound
+		}
+		if errors.Is(err, sql.ErrNoRows) {
+			return model.Event{}, ErrNotFound
+		}
+		return model.Event{}, err
 	}
 
 	return event, nil
@@ -534,7 +540,7 @@ func (s *PostgresStore) UpdateEvent(input model.UpdateEventInput) (model.Event, 
 		RETURNING id, organizer_id, title, description, venue_name, venue_address, event_date, doors_open_time, start_time, end_time, ticket_price, capacity, status, created_at, updated_at
 	`
 
-	event, ok := scanEvent(s.db.QueryRow(
+	event, err := scanEvent(s.db.QueryRow(
 		q,
 		input.ID,
 		stringOrNil(input.Title),
@@ -549,8 +555,11 @@ func (s *PostgresStore) UpdateEvent(input model.UpdateEventInput) (model.Event, 
 		input.Capacity,
 		statusOrNil(input.Status),
 	))
-	if !ok {
-		return model.Event{}, ErrNotFound
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return model.Event{}, ErrNotFound
+		}
+		return model.Event{}, err
 	}
 
 	return event, nil
@@ -584,8 +593,11 @@ func (s *PostgresStore) GetEventByID(id string) (model.Event, bool) {
 	`
 
 	row := s.db.QueryRow(q, id)
-	event, ok := scanEvent(row)
-	return event, ok
+	event, err := scanEvent(row)
+	if err != nil {
+		return model.Event{}, false
+	}
+	return event, true
 }
 
 func (s *PostgresStore) CreateReservation(userID string, eventID string) (model.Reservation, error) {
@@ -1296,7 +1308,7 @@ type performanceScanner interface {
 	Scan(dest ...any) error
 }
 
-func scanEvent(scanner eventScanner) (model.Event, bool) {
+func scanEvent(scanner eventScanner) (model.Event, error) {
 	var event model.Event
 	var description sql.NullString
 	var eventDate sql.NullTime
@@ -1324,8 +1336,8 @@ func scanEvent(scanner eventScanner) (model.Event, bool) {
 		&event.CreatedAt,
 		&event.UpdatedAt,
 	)
-	if errors.Is(err, sql.ErrNoRows) || err != nil {
-		return model.Event{}, false
+	if err != nil {
+		return model.Event{}, err
 	}
 
 	if eventDate.Valid {
@@ -1355,13 +1367,21 @@ func scanEvent(scanner eventScanner) (model.Event, bool) {
 	}
 	event.Status = model.EventStatus(status)
 
-	return event, true
+	return event, nil
 }
 
 func isUniqueViolation(err error) bool {
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) {
 		return pgErr.Code == "23505"
+	}
+	return false
+}
+
+func isForeignKeyViolation(err error) bool {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		return pgErr.Code == "23503"
 	}
 	return false
 }
