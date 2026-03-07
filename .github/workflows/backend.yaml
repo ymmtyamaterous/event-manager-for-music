@@ -32,8 +32,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-        #   images: ghcr.io/${{ github.repository }}-api
-          images: ghcr.io/stage-craft-api
+          images: ghcr.io/${{ github.repository }}-api
           tags: |
             1.0.0
             latest
