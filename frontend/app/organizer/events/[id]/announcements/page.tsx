@@ -143,23 +143,23 @@ export default function OrganizerAnnouncementsPage({ params }: OrganizerAnnounce
   };
 
   if (isLoading) {
-    return <p className="text-sm text-gray-600">読み込み中...</p>;
+    return <p className="font-(family-name:--font-space-mono) text-xs text-[#6b6a75]">読み込み中...</p>;
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">お知らせ管理</h1>
-        <p className="mt-1 text-sm text-gray-600">イベント参加者向けのお知らせを作成・編集できます。</p>
+        <h1 className="font-(family-name:--font-bebas-neue) text-4xl tracking-wider text-[#f0eff5]">お知らせ管理</h1>
+        <p className="mt-1 text-sm text-[#6b6a75]">イベント参加者向けのお知らせを作成・編集できます。</p>
       </div>
 
-      {error && <div className="bg-red-50 text-red-700 border border-red-200 rounded-lg px-4 py-3 text-sm">{error}</div>}
+      {error && <div className="border border-[rgba(255,45,85,0.2)] bg-[rgba(255,45,85,0.08)] px-4 py-3 text-sm text-[#ff5470]">{error}</div>}
 
-      <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <h2 className="text-lg font-bold text-gray-900">{editingId ? "お知らせ編集" : "新規お知らせ"}</h2>
+      <section className="border border-[rgba(255,255,255,0.08)] bg-[#0d0d12] p-6">
+        <h2 className="font-(family-name:--font-space-mono) text-xs tracking-[3px] text-[#6b6a75] uppercase">{editingId ? "お知らせ編集" : "新規お知らせ"}</h2>
         <form className="mt-4 space-y-3" onSubmit={handleSubmit}>
           <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="title" className="mb-1.5 block font-(family-name:--font-space-mono) text-[10px] tracking-[2px] text-[#6b6a75] uppercase">
               タイトル
             </label>
             <input
@@ -167,21 +167,21 @@ export default function OrganizerAnnouncementsPage({ params }: OrganizerAnnounce
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full bg-[#060608] border border-[rgba(255,255,255,0.08)] text-[#f0eff5] placeholder-[#6b6a75] px-3 py-2 focus:outline-none focus:border-[#ff2d55] transition-colors"
               placeholder="お知らせタイトル"
               maxLength={255}
               required
             />
           </div>
           <div>
-            <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="content" className="mb-1.5 block font-(family-name:--font-space-mono) text-[10px] tracking-[2px] text-[#6b6a75] uppercase">
               本文
             </label>
             <textarea
               id="content"
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              className="w-full min-h-28 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full min-h-28 bg-[#060608] border border-[rgba(255,255,255,0.08)] text-[#f0eff5] placeholder-[#6b6a75] px-3 py-2 focus:outline-none focus:border-[#ff2d55] transition-colors"
               placeholder="参加者へ伝えたい内容"
               required
             />
@@ -190,7 +190,7 @@ export default function OrganizerAnnouncementsPage({ params }: OrganizerAnnounce
             <button
               type="submit"
               disabled={isSubmitting}
-              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-70 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+              className="bg-[#ff2d55] hover:bg-[#ff5470] disabled:opacity-60 text-white font-(family-name:--font-space-mono) text-xs tracking-[2px] py-2.5 px-6 transition-colors"
             >
               {isSubmitting ? "保存中..." : editingId ? "更新する" : "作成する"}
             </button>
@@ -198,7 +198,7 @@ export default function OrganizerAnnouncementsPage({ params }: OrganizerAnnounce
               <button
                 type="button"
                 onClick={resetForm}
-                className="border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-2 px-4 rounded-lg transition-colors"
+                className="border border-[rgba(255,255,255,0.12)] hover:border-[rgba(255,255,255,0.25)] text-[#6b6a75] hover:text-[#f0eff5] font-(family-name:--font-space-mono) text-xs tracking-[1px] py-2.5 px-5 transition-colors"
               >
                 編集をキャンセル
               </button>
@@ -207,21 +207,21 @@ export default function OrganizerAnnouncementsPage({ params }: OrganizerAnnounce
         </form>
       </section>
 
-      <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <h2 className="text-lg font-bold text-gray-900">登録済みお知らせ</h2>
+      <section className="border border-[rgba(255,255,255,0.08)] bg-[#0d0d12] p-6">
+        <h2 className="font-(family-name:--font-space-mono) text-xs tracking-[3px] text-[#6b6a75] uppercase">登録済みお知らせ</h2>
         <div className="mt-4 space-y-3">
           {items.map((item) => (
-            <article key={item.id} className="rounded-lg border border-gray-200 p-4">
+            <article key={item.id} className="border border-[rgba(255,255,255,0.08)] p-4">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
-                  <h3 className="text-base font-semibold text-gray-900">{item.title}</h3>
-                  <p className="mt-1 text-xs text-gray-500">公開日時: {new Date(item.publishedAt).toLocaleString("ja-JP")}</p>
+                  <h3 className="text-base font-semibold text-[#f0eff5]">{item.title}</h3>
+                  <p className="mt-1 font-(family-name:--font-space-mono) text-[10px] text-[#6b6a75]">公開日時: {new Date(item.publishedAt).toLocaleString("ja-JP")}</p>
                 </div>
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => handleEdit(item)}
-                    className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold py-1.5 px-3 rounded-lg transition-colors"
+                    className="border border-[rgba(255,255,255,0.12)] hover:border-[rgba(255,255,255,0.25)] hover:bg-white/5 text-[#6b6a75] hover:text-[#f0eff5] font-(family-name:--font-space-mono) text-[10px] tracking-[1px] py-1.5 px-3 transition-colors"
                   >
                     編集
                   </button>
@@ -229,16 +229,16 @@ export default function OrganizerAnnouncementsPage({ params }: OrganizerAnnounce
                     type="button"
                     onClick={() => handleDelete(item.id)}
                     disabled={deletingId === item.id}
-                    className="bg-red-600 hover:bg-red-700 disabled:opacity-70 text-white text-sm font-semibold py-1.5 px-3 rounded-lg transition-colors"
+                    className="border border-[rgba(255,45,85,0.3)] hover:border-[#ff2d55] disabled:opacity-60 text-[#ff5470] hover:text-[#ff2d55] font-(family-name:--font-space-mono) text-[10px] tracking-[1px] py-1.5 px-3 transition-colors"
                   >
                     {deletingId === item.id ? "削除中..." : "削除"}
                   </button>
                 </div>
               </div>
-              <p className="mt-3 whitespace-pre-wrap text-sm text-gray-700">{item.content}</p>
+              <p className="mt-3 whitespace-pre-wrap text-sm text-[#6b6a75]">{item.content}</p>
             </article>
           ))}
-          {items.length === 0 && <p className="text-sm text-gray-500">お知らせはまだありません。</p>}
+          {items.length === 0 && <p className="font-(family-name:--font-space-mono) text-xs text-[#6b6a75]">お知らせはまだありません。</p>}
         </div>
       </section>
     </div>

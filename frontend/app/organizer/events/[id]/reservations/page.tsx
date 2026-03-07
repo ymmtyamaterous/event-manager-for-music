@@ -88,40 +88,40 @@ export default function OrganizerReservationsPage({ params }: OrganizerReservati
   };
 
   if (isLoading) {
-    return <p className="text-sm text-gray-600">読み込み中...</p>;
+    return <p className="font-(family-name:--font-space-mono) text-xs text-[#6b6a75]">読み込み中...</p>;
   }
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">予約者一覧</h1>
-          <p className="mt-1 text-sm text-gray-600">イベント予約者を検索・管理できます。</p>
+          <h1 className="font-(family-name:--font-bebas-neue) text-4xl tracking-wider text-[#f0eff5]">予約者一覧</h1>
+          <p className="mt-1 text-sm text-[#6b6a75]">イベント予約者を検索・管理できます。</p>
         </div>
         <button
           type="button"
           onClick={handleExport}
           disabled={isExporting}
-          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-70 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+          className="bg-[#ff2d55] hover:bg-[#ff5470] disabled:opacity-60 text-white font-(family-name:--font-space-mono) text-xs tracking-[2px] py-2.5 px-5 transition-colors"
         >
           {isExporting ? "出力中..." : "CSV出力"}
         </button>
       </div>
 
-      {error && <div className="bg-red-50 text-red-700 border border-red-200 rounded-lg px-4 py-3 text-sm">{error}</div>}
+      {error && <div className="border border-[rgba(255,45,85,0.2)] bg-[rgba(255,45,85,0.08)] px-4 py-3 text-sm text-[#ff5470]">{error}</div>}
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex flex-col md:flex-row gap-3">
+      <div className="border border-[rgba(255,255,255,0.08)] bg-[#0d0d12] p-4 flex flex-col md:flex-row gap-3">
         <input
           type="text"
           value={searchWord}
           onChange={(e) => setSearchWord(e.target.value)}
           placeholder="予約番号・表示名・メールで検索"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full bg-[#060608] border border-[rgba(255,255,255,0.08)] text-[#f0eff5] placeholder-[#6b6a75] px-3 py-2 focus:outline-none focus:border-[#ff2d55] transition-colors"
         />
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value as "" | "reserved" | "cancelled")}
-          className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="bg-[#060608] border border-[rgba(255,255,255,0.08)] text-[#f0eff5] px-3 py-2 focus:outline-none focus:border-[#ff2d55] transition-colors"
         >
           <option value="">全件</option>
           <option value="reserved">予約中</option>
@@ -129,42 +129,42 @@ export default function OrganizerReservationsPage({ params }: OrganizerReservati
         </select>
       </div>
 
-      <p className="text-sm font-medium text-gray-700">{items.length}件</p>
+      <p className="font-(family-name:--font-space-mono) text-[10px] tracking-[2px] text-[#6b6a75]">{items.length}件</p>
 
-      <div className="overflow-x-auto rounded-xl border border-gray-100 bg-white shadow-sm">
+      <div className="overflow-x-auto border border-[rgba(255,255,255,0.08)] bg-[#0d0d12]">
         <table className="min-w-full text-sm">
-          <thead className="bg-gray-50">
-            <tr className="text-left text-gray-700">
-              <th className="px-4 py-3 font-semibold">予約番号</th>
-              <th className="px-4 py-3 font-semibold">予約者名</th>
-              <th className="px-4 py-3 font-semibold">メールアドレス</th>
-              <th className="px-4 py-3 font-semibold">ステータス</th>
-              <th className="px-4 py-3 font-semibold">予約日時</th>
+          <thead>
+            <tr className="text-left border-b border-[rgba(255,255,255,0.08)]">
+              <th className="px-4 py-3 font-(family-name:--font-space-mono) text-[10px] tracking-[2px] text-[#6b6a75] uppercase">予約番号</th>
+              <th className="px-4 py-3 font-(family-name:--font-space-mono) text-[10px] tracking-[2px] text-[#6b6a75] uppercase">予約者名</th>
+              <th className="px-4 py-3 font-(family-name:--font-space-mono) text-[10px] tracking-[2px] text-[#6b6a75] uppercase">メールアドレス</th>
+              <th className="px-4 py-3 font-(family-name:--font-space-mono) text-[10px] tracking-[2px] text-[#6b6a75] uppercase">ステータス</th>
+              <th className="px-4 py-3 font-(family-name:--font-space-mono) text-[10px] tracking-[2px] text-[#6b6a75] uppercase">予約日時</th>
             </tr>
           </thead>
           <tbody>
             {items.map((item) => (
-              <tr key={item.id} className="border-t border-gray-100">
-                <td className="px-4 py-3 text-gray-900">{item.reservationNumber}</td>
-                <td className="px-4 py-3 text-gray-900">{item.userDisplayName}</td>
-                <td className="px-4 py-3 text-gray-700">{item.userEmail}</td>
+              <tr key={item.id} className="border-t border-[rgba(255,255,255,0.06)] hover:bg-white/[0.02]">
+                <td className="px-4 py-3 font-(family-name:--font-space-mono) text-xs text-[#f0eff5]">{item.reservationNumber}</td>
+                <td className="px-4 py-3 text-[#f0eff5]">{item.userDisplayName}</td>
+                <td className="px-4 py-3 text-[#6b6a75]">{item.userEmail}</td>
                 <td className="px-4 py-3">
                   <span
                     className={
                       item.status === "reserved"
-                        ? "inline-flex rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-800"
-                        : "inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600"
+                        ? "inline-flex bg-[rgba(0,220,120,0.12)] px-2.5 py-1 font-(family-name:--font-space-mono) text-[10px] tracking-[1px] text-[#00dc78]"
+                        : "inline-flex bg-[rgba(255,255,255,0.06)] px-2.5 py-1 font-(family-name:--font-space-mono) text-[10px] tracking-[1px] text-[#6b6a75]"
                     }
                   >
                     {item.status === "reserved" ? "予約中" : "キャンセル済み"}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-gray-700">{new Date(item.reservedAt).toLocaleString("ja-JP")}</td>
+                <td className="px-4 py-3 font-(family-name:--font-space-mono) text-xs text-[#6b6a75]">{new Date(item.reservedAt).toLocaleString("ja-JP")}</td>
               </tr>
             ))}
             {items.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-gray-500">
+                <td colSpan={5} className="px-4 py-6 text-center font-(family-name:--font-space-mono) text-xs text-[#6b6a75]">
                   予約データがありません。
                 </td>
               </tr>

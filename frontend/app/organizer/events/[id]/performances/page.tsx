@@ -197,17 +197,17 @@ export default function OrganizerPerformancesPage({ params }: OrganizerPerforman
   };
 
   if (isLoading) {
-    return <p className="text-sm text-gray-600">読み込み中...</p>;
+    return <p className="font-(family-name:--font-space-mono) text-xs text-[#6b6a75]">読み込み中...</p>;
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">出演タイムテーブル管理</h1>
-        <p className="mt-1 text-sm text-gray-600">出演順・開始/終了時刻を編集できます。カードをドラッグして並び替えできます。</p>
+        <h1 className="font-(family-name:--font-bebas-neue) text-4xl tracking-wider text-[#f0eff5]">出演タイムテーブル管理</h1>
+        <p className="mt-1 text-sm text-[#6b6a75]">出演順・開始/終了時刻を編集できます。カードをドラッグして並び替えできます。</p>
       </div>
 
-      {error && <div className="bg-red-50 text-red-700 border border-red-200 rounded-lg px-4 py-3 text-sm">{error}</div>}
+      {error && <div className="border border-[rgba(255,45,85,0.2)] bg-[rgba(255,45,85,0.08)] px-4 py-3 text-sm text-[#ff5470]">{error}</div>}
 
       <div className="space-y-3">
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -225,19 +225,19 @@ export default function OrganizerPerformancesPage({ params }: OrganizerPerforman
         </DndContext>
 
         {items.length === 0 && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-sm text-gray-500">出演情報がありません。</div>
+          <div className="border border-[rgba(255,255,255,0.08)] bg-[#0d0d12] p-6 font-(family-name:--font-space-mono) text-xs text-[#6b6a75]">出演情報がありません。</div>
         )}
       </div>
 
       {editTarget && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
-            <h2 className="text-lg font-bold text-gray-900">出演情報を編集</h2>
-            <p className="mt-1 text-sm text-gray-600">{editTarget.bandName}</p>
+          <div className="border border-[rgba(255,255,255,0.12)] bg-[#0d0d12] p-6 w-full max-w-md mx-4">
+            <h2 className="font-(family-name:--font-bebas-neue) text-2xl tracking-wider text-[#f0eff5]">出演情報を編集</h2>
+            <p className="mt-1 text-sm text-[#6b6a75]">{editTarget.bandName}</p>
 
             <form className="mt-4 space-y-3" onSubmit={handleEditSubmit}>
               <div>
-                <label htmlFor="start-time" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="start-time" className="mb-1.5 block font-(family-name:--font-space-mono) text-[10px] tracking-[2px] text-[#6b6a75] uppercase">
                   開始時刻（任意）
                 </label>
                 <input
@@ -246,12 +246,12 @@ export default function OrganizerPerformancesPage({ params }: OrganizerPerforman
                   value={editStartTime}
                   onChange={(e) => setEditStartTime(e.target.value)}
                   placeholder="18:30"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-[#060608] border border-[rgba(255,255,255,0.08)] text-[#f0eff5] placeholder-[#6b6a75] px-3 py-2 focus:outline-none focus:border-[#ff2d55] transition-colors"
                 />
               </div>
 
               <div>
-                <label htmlFor="end-time" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="end-time" className="mb-1.5 block font-(family-name:--font-space-mono) text-[10px] tracking-[2px] text-[#6b6a75] uppercase">
                   終了時刻（任意）
                 </label>
                 <input
@@ -260,12 +260,12 @@ export default function OrganizerPerformancesPage({ params }: OrganizerPerforman
                   value={editEndTime}
                   onChange={(e) => setEditEndTime(e.target.value)}
                   placeholder="19:00"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-[#060608] border border-[rgba(255,255,255,0.08)] text-[#f0eff5] placeholder-[#6b6a75] px-3 py-2 focus:outline-none focus:border-[#ff2d55] transition-colors"
                 />
               </div>
 
               <div>
-                <label htmlFor="performance-order" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="performance-order" className="mb-1.5 block font-(family-name:--font-space-mono) text-[10px] tracking-[2px] text-[#6b6a75] uppercase">
                   出演順（必須）
                 </label>
                 <input
@@ -274,7 +274,7 @@ export default function OrganizerPerformancesPage({ params }: OrganizerPerforman
                   min={1}
                   value={editPerformanceOrder}
                   onChange={(e) => setEditPerformanceOrder(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-[#060608] border border-[rgba(255,255,255,0.08)] text-[#f0eff5] px-3 py-2 focus:outline-none focus:border-[#ff2d55] transition-colors"
                   required
                 />
               </div>
@@ -283,14 +283,14 @@ export default function OrganizerPerformancesPage({ params }: OrganizerPerforman
                 <button
                   type="button"
                   onClick={() => setEditTarget(null)}
-                  className="border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-2 px-4 rounded-lg transition-colors"
+                  className="border border-[rgba(255,255,255,0.12)] hover:border-[rgba(255,255,255,0.25)] text-[#6b6a75] hover:text-[#f0eff5] font-(family-name:--font-space-mono) text-xs tracking-[1px] py-2 px-4 transition-colors"
                 >
                   キャンセル
                 </button>
                 <button
                   type="submit"
                   disabled={processingId === editTarget.id}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-70 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+                  className="bg-[#ff2d55] hover:bg-[#ff5470] disabled:opacity-60 text-white font-(family-name:--font-space-mono) text-xs tracking-[2px] py-2 px-6 transition-colors"
                 >
                   {processingId === editTarget.id ? "保存中..." : "保存"}
                 </button>
@@ -302,9 +302,9 @@ export default function OrganizerPerformancesPage({ params }: OrganizerPerforman
 
       {deleteTarget && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
-            <h2 className="text-lg font-bold text-gray-900">出演情報を削除しますか？</h2>
-            <p className="mt-2 text-sm text-gray-600">
+          <div className="border border-[rgba(255,255,255,0.12)] bg-[#0d0d12] p-6 w-full max-w-md mx-4">
+            <h2 className="font-(family-name:--font-bebas-neue) text-2xl tracking-wider text-[#f0eff5]">出演情報を削除しますか？</h2>
+            <p className="mt-2 text-sm text-[#6b6a75]">
               {deleteTarget.performanceOrder}. {deleteTarget.bandName}
             </p>
 
@@ -312,7 +312,7 @@ export default function OrganizerPerformancesPage({ params }: OrganizerPerforman
               <button
                 type="button"
                 onClick={() => setDeleteTarget(null)}
-                className="border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-2 px-4 rounded-lg transition-colors"
+                className="border border-[rgba(255,255,255,0.12)] hover:border-[rgba(255,255,255,0.25)] text-[#6b6a75] hover:text-[#f0eff5] font-(family-name:--font-space-mono) text-xs tracking-[1px] py-2 px-4 transition-colors"
               >
                 キャンセル
               </button>
@@ -320,7 +320,7 @@ export default function OrganizerPerformancesPage({ params }: OrganizerPerforman
                 type="button"
                 onClick={handleDelete}
                 disabled={processingId === deleteTarget.id}
-                className="bg-red-600 hover:bg-red-700 disabled:opacity-70 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+                className="border border-[rgba(255,45,85,0.4)] hover:border-[#ff2d55] disabled:opacity-60 text-[#ff5470] hover:text-[#ff2d55] font-(family-name:--font-space-mono) text-xs tracking-[1px] py-2 px-4 transition-colors"
               >
                 {processingId === deleteTarget.id ? "削除中..." : "削除"}
               </button>
@@ -354,7 +354,7 @@ function SortablePerformanceCard({ item, disabled, onEdit, onDelete }: SortableP
     <article
       ref={setNodeRef}
       style={style}
-      className={`rounded-xl border border-gray-100 bg-white p-4 shadow-sm ${isDragging ? "opacity-70" : ""}`}
+      className={`border border-[rgba(255,255,255,0.08)] bg-[#0d0d12] p-4 ${isDragging ? "opacity-50" : ""}`}
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-start gap-3">
@@ -363,16 +363,16 @@ function SortablePerformanceCard({ item, disabled, onEdit, onDelete }: SortableP
             {...attributes}
             {...listeners}
             disabled={disabled}
-            className="mt-1 cursor-grab rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-600 active:cursor-grabbing disabled:opacity-40"
+            className="mt-1 cursor-grab border border-[rgba(255,255,255,0.12)] px-2 py-1 font-(family-name:--font-space-mono) text-xs text-[#6b6a75] active:cursor-grabbing disabled:opacity-40"
             aria-label="ドラッグして並び替え"
           >
             ⠿
           </button>
           <div>
-            <h2 className="text-lg font-bold text-gray-900">
+            <h2 className="text-base font-semibold text-[#f0eff5]">
               {item.performanceOrder}. {item.bandName}
             </h2>
-            <p className="mt-1 text-sm text-gray-600">
+            <p className="mt-1 font-(family-name:--font-space-mono) text-xs text-[#6b6a75]">
               {item.startTime ?? "--:--"} - {item.endTime ?? "--:--"}
             </p>
           </div>
@@ -382,7 +382,7 @@ function SortablePerformanceCard({ item, disabled, onEdit, onDelete }: SortableP
             type="button"
             onClick={() => onEdit(item)}
             disabled={disabled}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-70"
+            className="border border-[rgba(255,255,255,0.12)] hover:border-[rgba(255,255,255,0.25)] hover:bg-white/5 text-[#6b6a75] hover:text-[#f0eff5] font-(family-name:--font-space-mono) text-[10px] tracking-[1px] px-4 py-2 transition-colors disabled:opacity-40"
           >
             編集
           </button>
@@ -390,7 +390,7 @@ function SortablePerformanceCard({ item, disabled, onEdit, onDelete }: SortableP
             type="button"
             onClick={() => onDelete(item)}
             disabled={disabled}
-            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-70"
+            className="border border-[rgba(255,45,85,0.3)] hover:border-[#ff2d55] text-[#ff5470] hover:text-[#ff2d55] font-(family-name:--font-space-mono) text-[10px] tracking-[1px] px-4 py-2 transition-colors disabled:opacity-40"
           >
             削除
           </button>
