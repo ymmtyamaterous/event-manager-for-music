@@ -1,19 +1,111 @@
 @import "tailwindcss";
 
+/* ============================================================
+   STAGECRAFT — Design System Tokens
+   音楽ライブ イベント管理アプリ
+   ============================================================ */
+
 :root {
-  --background: #f9fafb;
-  --foreground: #111827;
+  /* Primary Palette */
+  --color-brand-red:        #ff2d55;
+  --color-brand-red-hover:  #ff5470;
+  --color-brand-yellow:     #ffcc00;
+  --color-brand-cyan:       #00e5ff;
+  --color-brand-purple:     #8b5cf6;
+  --color-success:          #22c55e;
+
+  /* Backgrounds */
+  --color-bg:               #060608;
+  --color-surface:          #0d0d12;
+
+  /* Text */
+  --color-text:             #f0eff5;
+  --color-text-muted:       #6b6a75;
+  --color-text-subtle:      rgba(240, 239, 245, 0.55);
+  --color-text-body:        rgba(240, 239, 245, 0.65);
+
+  /* Border */
+  --color-border:           rgba(255, 255, 255, 0.08);
+  --color-border-hover:     rgba(255, 255, 255, 0.15);
+  --color-border-strong:    rgba(255, 255, 255, 0.20);
+
+  /* Accent */
+  --color-accent:           var(--color-brand-red);
+
+  /* Gradients */
+  --gradient-hero-bg:
+    radial-gradient(ellipse 60% 60% at 70% 50%, rgba(255, 45, 85, 0.12), transparent),
+    radial-gradient(ellipse 40% 80% at 20% 80%, rgba(0, 229, 255, 0.06), transparent);
+
+  /* Shadows */
+  --shadow-btn-primary-hover: 0 16px 40px rgba(255, 45, 85, 0.40);
+
+  /* Aliases for Tailwind theme */
+  --background: var(--color-bg);
+  --foreground: var(--color-text);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans:   var(--font-noto-sans-jp);
+  --font-mono:   var(--font-space-mono);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-noto-sans-jp), 'Noto Sans JP', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ============================================================
+   SCROLL REVEAL UTILITY
+   ============================================================ */
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ============================================================
+   KEYFRAMES
+   ============================================================ */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1);   opacity: 1;   }
+  50%       { transform: scale(1.5); opacity: 0.6; }
+}
+
+@keyframes cardPop {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes expandX {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+@keyframes expandY {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.8; }
+  50%       { opacity: 1;   }
 }

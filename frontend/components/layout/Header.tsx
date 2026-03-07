@@ -72,15 +72,15 @@ export function Header() {
   };
 
   return (
-    <header className="border-b border-gray-200 bg-white/95 backdrop-blur">
+    <header className="sticky top-0 z-50 border-b border-[rgba(255,255,255,0.08)] bg-[rgba(6,6,8,0.90)] backdrop-blur-sm">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
-        <Link href="/" className="text-lg font-bold text-gray-900" onClick={closeMobileMenu}>
-          🎵 EventManager
+        <Link href="/" className="font-(family-name:--font-bebas-neue) text-2xl tracking-[4px] text-[#f0eff5] hover:text-[#ff2d55] transition-colors" onClick={closeMobileMenu}>
+          STAGECRAFT
         </Link>
 
         <button
           type="button"
-          className="inline-flex items-center justify-center rounded-lg p-2 text-gray-700 hover:bg-gray-100 sm:hidden"
+          className="inline-flex items-center justify-center rounded p-2 text-[#6b6a75] hover:text-[#f0eff5] hover:bg-white/5 sm:hidden transition-colors"
           onClick={() => setIsMobileMenuOpen((prev) => !prev)}
           aria-label="メニューを開閉"
           aria-expanded={isMobileMenuOpen}
@@ -90,9 +90,13 @@ export function Header() {
           </svg>
         </button>
 
-        <nav className="hidden items-center gap-5 text-sm font-medium text-gray-700 sm:flex">
+        <nav className="hidden items-center gap-8 sm:flex">
           {navItems.map((item) => (
-            <Link key={item.href} href={item.href} className="transition-colors hover:text-blue-700">
+            <Link
+              key={item.href}
+              href={item.href}
+              className="font-(family-name:--font-space-mono) text-xs tracking-[2px] text-[#6b6a75] transition-colors hover:text-[#f0eff5]"
+            >
               {item.label}
             </Link>
           ))}
@@ -100,12 +104,15 @@ export function Header() {
             <button
               type="button"
               onClick={openLogoutModal}
-              className="rounded-lg bg-gray-800 px-4 py-2 font-semibold text-white transition-colors hover:bg-gray-900"
+              className="font-(family-name:--font-space-mono) text-xs tracking-[2px] border border-[rgba(255,255,255,0.12)] px-4 py-2 text-[#6b6a75] transition-colors hover:text-[#f0eff5] hover:border-[rgba(255,255,255,0.25)]"
             >
               ログアウト
             </button>
           ) : (
-            <Link href="/login" className="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white transition-colors hover:bg-blue-700">
+            <Link
+              href="/login"
+              className="font-(family-name:--font-space-mono) text-xs tracking-[2px] bg-[#ff2d55] px-4 py-2 text-white transition-all hover:bg-[#ff5470] hover:shadow-[0_8px_24px_rgba(255,45,85,0.35)]"
+            >
               ログイン
             </Link>
           )}
@@ -113,10 +120,15 @@ export function Header() {
       </div>
 
       {isMobileMenuOpen && (
-        <div className="border-t border-gray-200 bg-white px-4 py-3 sm:hidden">
-          <nav className="flex flex-col gap-3 text-sm font-medium text-gray-700">
+        <div className="border-t border-[rgba(255,255,255,0.08)] bg-[#0d0d12] px-4 py-4 sm:hidden">
+          <nav className="flex flex-col gap-4">
             {navItems.map((item) => (
-              <Link key={item.href} href={item.href} onClick={closeMobileMenu} className="transition-colors hover:text-blue-700">
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={closeMobileMenu}
+                className="font-(family-name:--font-space-mono) text-xs tracking-[2px] text-[#6b6a75] transition-colors hover:text-[#f0eff5]"
+              >
                 {item.label}
               </Link>
             ))}
@@ -124,7 +136,7 @@ export function Header() {
               <button
                 type="button"
                 onClick={openLogoutModal}
-                className="rounded-lg bg-gray-800 px-4 py-2 text-left font-semibold text-white transition-colors hover:bg-gray-900"
+                className="font-(family-name:--font-space-mono) text-xs tracking-[2px] border border-[rgba(255,255,255,0.12)] px-4 py-2 text-left text-[#6b6a75] transition-colors hover:text-[#f0eff5]"
               >
                 ログアウト
               </button>
@@ -132,7 +144,7 @@ export function Header() {
               <Link
                 href="/login"
                 onClick={closeMobileMenu}
-                className="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white transition-colors hover:bg-blue-700"
+                className="font-(family-name:--font-space-mono) text-xs tracking-[2px] inline-block bg-[#ff2d55] px-4 py-2 text-white transition-colors hover:bg-[#ff5470]"
               >
                 ログイン
               </Link>
@@ -143,21 +155,21 @@ export function Header() {
 
       {isLogoutModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={closeLogoutModal}>
-          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-bold text-gray-900">ログアウト確認</h2>
-            <p className="mt-2 text-sm text-gray-600">ログアウトしてよろしいですか？</p>
+          <div className="w-full max-w-sm border border-[rgba(255,255,255,0.12)] bg-[#0d0d12] p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-bold text-[#f0eff5]">ログアウト確認</h2>
+            <p className="mt-2 text-sm text-[#6b6a75]">ログアウトしてよろしいですか？</p>
             <div className="mt-5 flex justify-end gap-2">
               <button
                 type="button"
                 onClick={closeLogoutModal}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                className="border border-[rgba(255,255,255,0.12)] px-4 py-2 text-sm font-(family-name:--font-space-mono) tracking-wide text-[#6b6a75] hover:text-[#f0eff5] transition-colors"
               >
                 キャンセル
               </button>
               <button
                 type="button"
                 onClick={handleLogout}
-                className="rounded-lg bg-gray-800 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-900"
+                className="bg-[#ff2d55] px-4 py-2 text-sm font-(family-name:--font-space-mono) tracking-wide text-white hover:bg-[#ff5470] transition-colors"
               >
                 ログアウト
               </button>

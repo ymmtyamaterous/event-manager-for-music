@@ -42,66 +42,67 @@ export default function OrganizerPage() {
   const draftEvents = events.filter((event) => event.status === "draft");
 
   if (isLoading) {
-    return <p className="text-sm text-gray-600">読み込み中...</p>;
+    return <p className="text-sm text-[#6b6a75]">読み込み中...</p>;
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">運営ダッシュボード</h1>
-          <p className="mt-1 text-sm text-gray-600">イベント作成と公開状況の管理</p>
+          <p className="font-(family-name:--font-space-mono) text-xs tracking-[4px] text-[#ff2d55] mb-2">— ORGANIZER</p>
+          <h1 className="font-(family-name:--font-bebas-neue) text-4xl tracking-tight text-[#f0eff5]">運営ダッシュボード</h1>
+          <p className="mt-1 text-sm text-[#6b6a75]">イベント作成と公開状況の管理</p>
         </div>
         <Link
           href="/organizer/events/new"
-          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+          className="font-(family-name:--font-space-mono) text-xs tracking-[2px] bg-[#ff2d55] hover:bg-[#ff5470] text-white py-2.5 px-5 transition-all hover:shadow-[0_16px_40px_rgba(255,45,85,0.35)]"
         >
-          新規イベント作成
+          + 新規イベント作成
         </Link>
       </div>
 
-      {error && <div className="bg-red-50 text-red-700 border border-red-200 rounded-lg px-4 py-3 text-sm">{error}</div>}
+      {error && <div className="border border-red-500/20 bg-red-900/20 px-4 py-3 text-sm text-red-400">{error}</div>}
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <article className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          <p className="text-sm text-gray-500">総イベント数</p>
-          <p className="text-2xl font-bold text-gray-900">{events.length}</p>
+      <div className="grid grid-cols-1 gap-px md:grid-cols-3">
+        <article className="bg-[#0d0d12] border border-[rgba(255,255,255,0.08)] p-5">
+          <p className="font-(family-name:--font-space-mono) text-xs tracking-[2px] text-[#6b6a75]">総イベント数</p>
+          <p className="mt-1 font-(family-name:--font-bebas-neue) text-4xl text-[#f0eff5]">{events.length}</p>
         </article>
-        <article className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          <p className="text-sm text-gray-500">公開中</p>
-          <p className="text-2xl font-bold text-gray-900">{publishedEvents.length}</p>
+        <article className="bg-[#0d0d12] border border-[rgba(255,255,255,0.08)] p-5">
+          <p className="font-(family-name:--font-space-mono) text-xs tracking-[2px] text-[#6b6a75]">公開中</p>
+          <p className="mt-1 font-(family-name:--font-bebas-neue) text-4xl text-[#ff2d55]">{publishedEvents.length}</p>
         </article>
-        <article className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          <p className="text-sm text-gray-500">下書き</p>
-          <p className="text-2xl font-bold text-gray-900">{draftEvents.length}</p>
+        <article className="bg-[#0d0d12] border border-[rgba(255,255,255,0.08)] p-5">
+          <p className="font-(family-name:--font-space-mono) text-xs tracking-[2px] text-[#6b6a75]">下書き</p>
+          <p className="mt-1 font-(family-name:--font-bebas-neue) text-4xl text-[#f0eff5]">{draftEvents.length}</p>
         </article>
       </div>
 
       <section className="space-y-3">
-        <h2 className="text-xl font-bold text-gray-900">公開中イベント</h2>
+        <h2 className="font-(family-name:--font-bebas-neue) text-2xl tracking-tight text-[#f0eff5]">公開中イベント</h2>
         {publishedEvents.length === 0 ? (
-          <p className="text-sm text-gray-600">公開中イベントはありません。</p>
+          <p className="text-sm text-[#6b6a75]">公開中イベントはありません。</p>
         ) : (
           <div className="space-y-3">
             {publishedEvents.map((event) => (
-              <article key={event.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-                <div className="inline-flex rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-800">公開中</div>
-                <h3 className="mt-2 text-lg font-bold text-gray-900">{event.title}</h3>
-                <p className="text-sm text-gray-600">📅 {event.eventDate} / 📍 {event.venueName}</p>
-                <div className="mt-3 flex gap-2">
-                  <Link href={`/organizer/events/${event.id}`} className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold py-1.5 px-3 rounded-lg transition-colors">
+              <article key={event.id} className="bg-[#0d0d12] border border-[rgba(255,255,255,0.08)] p-5 transition-colors hover:border-[rgba(255,255,255,0.15)]">
+                <div className="inline-flex bg-[rgba(255,45,85,0.15)] px-2.5 py-1 font-(family-name:--font-space-mono) text-[10px] tracking-[2px] text-[#ff2d55]">公開中</div>
+                <h3 className="mt-2 text-base font-bold text-[#f0eff5]">{event.title}</h3>
+                <p className="text-xs text-[#6b6a75]">📅 {event.eventDate} / 📍 {event.venueName}</p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Link href={`/organizer/events/${event.id}`} className="border border-[rgba(255,255,255,0.12)] hover:bg-white/5 text-[#6b6a75] hover:text-[#f0eff5] font-(family-name:--font-space-mono) text-[10px] tracking-[1px] py-1.5 px-3 transition-colors">
                     詳細
                   </Link>
-                  <Link href={`/organizer/events/${event.id}/entries`} className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold py-1.5 px-3 rounded-lg transition-colors">
+                  <Link href={`/organizer/events/${event.id}/entries`} className="border border-[rgba(255,255,255,0.12)] hover:bg-white/5 text-[#6b6a75] hover:text-[#f0eff5] font-(family-name:--font-space-mono) text-[10px] tracking-[1px] py-1.5 px-3 transition-colors">
                     エントリー
                   </Link>
-                  <Link href={`/organizer/events/${event.id}/performances`} className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold py-1.5 px-3 rounded-lg transition-colors">
+                  <Link href={`/organizer/events/${event.id}/performances`} className="border border-[rgba(255,255,255,0.12)] hover:bg-white/5 text-[#6b6a75] hover:text-[#f0eff5] font-(family-name:--font-space-mono) text-[10px] tracking-[1px] py-1.5 px-3 transition-colors">
                     タイムテーブル
                   </Link>
-                  <Link href={`/organizer/events/${event.id}/announcements`} className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold py-1.5 px-3 rounded-lg transition-colors">
+                  <Link href={`/organizer/events/${event.id}/announcements`} className="border border-[rgba(255,255,255,0.12)] hover:bg-white/5 text-[#6b6a75] hover:text-[#f0eff5] font-(family-name:--font-space-mono) text-[10px] tracking-[1px] py-1.5 px-3 transition-colors">
                     お知らせ
                   </Link>
-                  <Link href={`/organizer/events/${event.id}/edit`} className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-1.5 px-3 rounded-lg transition-colors">
+                  <Link href={`/organizer/events/${event.id}/edit`} className="bg-[#ff2d55] hover:bg-[#ff5470] text-white font-(family-name:--font-space-mono) text-[10px] tracking-[1px] py-1.5 px-3 transition-colors">
                     編集
                   </Link>
                 </div>
@@ -112,30 +113,30 @@ export default function OrganizerPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-xl font-bold text-gray-900">下書きイベント</h2>
+        <h2 className="font-(family-name:--font-bebas-neue) text-2xl tracking-tight text-[#f0eff5]">下書きイベント</h2>
         {draftEvents.length === 0 ? (
-          <p className="text-sm text-gray-600">下書きイベントはありません。</p>
+          <p className="text-sm text-[#6b6a75]">下書きイベントはありません。</p>
         ) : (
           <div className="space-y-3">
             {draftEvents.map((event) => (
-              <article key={event.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-                <div className="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600">下書き</div>
-                <h3 className="mt-2 text-lg font-bold text-gray-900">{event.title}</h3>
-                <p className="text-sm text-gray-600">📅 {event.eventDate} / 📍 {event.venueName}</p>
-                <div className="mt-3 flex gap-2">
-                  <Link href={`/organizer/events/${event.id}`} className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold py-1.5 px-3 rounded-lg transition-colors">
+              <article key={event.id} className="bg-[#0d0d12] border border-[rgba(255,255,255,0.08)] p-5 transition-colors hover:border-[rgba(255,255,255,0.15)]">
+                <div className="inline-flex bg-white/5 px-2.5 py-1 font-(family-name:--font-space-mono) text-[10px] tracking-[2px] text-[#6b6a75]">下書き</div>
+                <h3 className="mt-2 text-base font-bold text-[#f0eff5]">{event.title}</h3>
+                <p className="text-xs text-[#6b6a75]">📅 {event.eventDate} / 📍 {event.venueName}</p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Link href={`/organizer/events/${event.id}`} className="border border-[rgba(255,255,255,0.12)] hover:bg-white/5 text-[#6b6a75] hover:text-[#f0eff5] font-(family-name:--font-space-mono) text-[10px] tracking-[1px] py-1.5 px-3 transition-colors">
                     詳細
                   </Link>
-                  <Link href={`/organizer/events/${event.id}/entries`} className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold py-1.5 px-3 rounded-lg transition-colors">
+                  <Link href={`/organizer/events/${event.id}/entries`} className="border border-[rgba(255,255,255,0.12)] hover:bg-white/5 text-[#6b6a75] hover:text-[#f0eff5] font-(family-name:--font-space-mono) text-[10px] tracking-[1px] py-1.5 px-3 transition-colors">
                     エントリー
                   </Link>
-                  <Link href={`/organizer/events/${event.id}/performances`} className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold py-1.5 px-3 rounded-lg transition-colors">
+                  <Link href={`/organizer/events/${event.id}/performances`} className="border border-[rgba(255,255,255,0.12)] hover:bg-white/5 text-[#6b6a75] hover:text-[#f0eff5] font-(family-name:--font-space-mono) text-[10px] tracking-[1px] py-1.5 px-3 transition-colors">
                     タイムテーブル
                   </Link>
-                  <Link href={`/organizer/events/${event.id}/announcements`} className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold py-1.5 px-3 rounded-lg transition-colors">
+                  <Link href={`/organizer/events/${event.id}/announcements`} className="border border-[rgba(255,255,255,0.12)] hover:bg-white/5 text-[#6b6a75] hover:text-[#f0eff5] font-(family-name:--font-space-mono) text-[10px] tracking-[1px] py-1.5 px-3 transition-colors">
                     お知らせ
                   </Link>
-                  <Link href={`/organizer/events/${event.id}/edit`} className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-1.5 px-3 rounded-lg transition-colors">
+                  <Link href={`/organizer/events/${event.id}/edit`} className="bg-[#ff2d55] hover:bg-[#ff5470] text-white font-(family-name:--font-space-mono) text-[10px] tracking-[1px] py-1.5 px-3 transition-colors">
                     編集
                   </Link>
                 </div>

@@ -221,43 +221,43 @@ export default function PerformerPage() {
   }
 
   if (isLoading) {
-    return <p className="text-sm text-gray-600">読み込み中...</p>;
+    return <p className="font-(family-name:--font-space-mono) text-xs text-[#6b6a75]">読み込み中...</p>;
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">出演者ダッシュボード</h1>
-        <p className="mt-1 text-sm text-gray-600">バンド情報とイベントエントリーを管理できます。</p>
+        <h1 className="font-(family-name:--font-bebas-neue) text-4xl tracking-wider text-[#f0eff5]">出演者ダッシュボード</h1>
+        <p className="mt-1 text-sm text-[#6b6a75]">バンド情報とイベントエントリーを管理できます。</p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <article className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          <p className="text-sm text-gray-500">登録バンド数</p>
-          <p className="text-2xl font-bold text-gray-900">{bands.length}</p>
+        <article className="border border-[rgba(255,255,255,0.08)] bg-[#0d0d12] p-4">
+          <p className="font-(family-name:--font-space-mono) text-[10px] tracking-[2px] text-[#6b6a75] uppercase">登録バンド数</p>
+          <p className="font-(family-name:--font-bebas-neue) text-3xl tracking-wide text-[#ff2d55] mt-1">{bands.length}</p>
         </article>
-        <article className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          <p className="text-sm text-gray-500">エントリー可能イベント</p>
-          <p className="text-2xl font-bold text-gray-900">{events.length}</p>
+        <article className="border border-[rgba(255,255,255,0.08)] bg-[#0d0d12] p-4">
+          <p className="font-(family-name:--font-space-mono) text-[10px] tracking-[2px] text-[#6b6a75] uppercase">エントリー可能イベント</p>
+          <p className="font-(family-name:--font-bebas-neue) text-3xl tracking-wide text-[#f0eff5] mt-1">{events.length}</p>
         </article>
-        <article className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          <p className="text-sm text-gray-500">選択中バンド</p>
-          <p className="text-xl font-bold text-gray-900 truncate">{bands.find((b) => b.id === selectedBandId)?.name ?? "未選択"}</p>
+        <article className="border border-[rgba(255,255,255,0.08)] bg-[#0d0d12] p-4">
+          <p className="font-(family-name:--font-space-mono) text-[10px] tracking-[2px] text-[#6b6a75] uppercase">選択中バンド</p>
+          <p className="text-lg font-semibold text-[#f0eff5] mt-1 truncate">{bands.find((b) => b.id === selectedBandId)?.name ?? "未選択"}</p>
         </article>
       </div>
 
-      {error && <div className="bg-red-50 text-red-700 border border-red-200 rounded-lg px-4 py-3 text-sm">{error}</div>}
-      {success && <div className="bg-green-50 text-green-700 border border-green-200 rounded-lg px-4 py-3 text-sm">{success}</div>}
+      {error && <div className="border border-[rgba(255,45,85,0.2)] bg-[rgba(255,45,85,0.08)] px-4 py-3 text-sm text-[#ff5470]">{error}</div>}
+      {success && <div className="border border-[rgba(0,220,120,0.2)] bg-[rgba(0,220,120,0.08)] px-4 py-3 text-sm text-[#00dc78]">{success}</div>}
 
-      <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
-        <h2 className="text-lg font-bold text-gray-900">バンド登録</h2>
+      <section className="border border-[rgba(255,255,255,0.08)] bg-[#0d0d12] p-6 space-y-4">
+        <h2 className="font-(family-name:--font-space-mono) text-xs tracking-[3px] text-[#6b6a75] uppercase">バンド登録</h2>
         <form className="space-y-3" onSubmit={handleCreateBand}>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="バンド名（必須）"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full bg-[#060608] border border-[rgba(255,255,255,0.08)] text-[#f0eff5] placeholder-[#6b6a75] px-3 py-2 focus:outline-none focus:border-[#ff2d55] transition-colors"
             required
           />
           <input
@@ -265,13 +265,13 @@ export default function PerformerPage() {
             value={genre}
             onChange={(e) => setGenre(e.target.value)}
             placeholder="ジャンル（任意）"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full bg-[#060608] border border-[rgba(255,255,255,0.08)] text-[#f0eff5] placeholder-[#6b6a75] px-3 py-2 focus:outline-none focus:border-[#ff2d55] transition-colors"
           />
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="バンド説明（任意）"
-            className="w-full min-h-24 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full min-h-24 bg-[#060608] border border-[rgba(255,255,255,0.08)] text-[#f0eff5] placeholder-[#6b6a75] px-3 py-2 focus:outline-none focus:border-[#ff2d55] transition-colors"
           />
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <input
@@ -281,17 +281,17 @@ export default function PerformerPage() {
               value={formedYear}
               onChange={(e) => setFormedYear(e.target.value)}
               placeholder="結成年（任意）"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full bg-[#060608] border border-[rgba(255,255,255,0.08)] text-[#f0eff5] placeholder-[#6b6a75] px-3 py-2 focus:outline-none focus:border-[#ff2d55] transition-colors"
             />
             <input
               type="url"
               value={twitterUrl}
               onChange={(e) => setTwitterUrl(e.target.value)}
               placeholder="X/Twitter URL（任意）"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full bg-[#060608] border border-[rgba(255,255,255,0.08)] text-[#f0eff5] placeholder-[#6b6a75] px-3 py-2 focus:outline-none focus:border-[#ff2d55] transition-colors"
             />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <input
               ref={newBandImageInputRef}
               type="file"
@@ -302,47 +302,47 @@ export default function PerformerPage() {
             <button
               type="button"
               onClick={() => newBandImageInputRef.current?.click()}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 active:bg-gray-100"
+              className="inline-flex items-center gap-2 border border-[rgba(255,255,255,0.12)] px-4 py-2 text-sm font-(family-name:--font-space-mono) tracking-[1px] text-[#f0eff5] hover:border-[rgba(255,255,255,0.25)] hover:bg-white/5 transition-colors"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#6b6a75]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               バンド画像を選択
             </button>
-            <span className="max-w-45 truncate text-sm text-gray-500">
+            <span className="max-w-45 truncate text-sm text-[#6b6a75]">
               {newBandImage ? newBandImage.name : "ファイル未選択"}
             </span>
           </div>
           <textarea
             value={memberDraft}
             onChange={(e) => setMemberDraft(e.target.value)}
-            placeholder="メンバー（任意）: 1行1人、名前,担当 で入力\n例: 山田太郎,Vocal"
-            className="w-full min-h-24 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="メンバー（任意）: 1行1人、名前,担当 で入力&#10;例: 山田太郎,Vocal"
+            className="w-full min-h-24 bg-[#060608] border border-[rgba(255,255,255,0.08)] text-[#f0eff5] placeholder-[#6b6a75] px-3 py-2 focus:outline-none focus:border-[#ff2d55] transition-colors"
           />
           <textarea
             value={setlistDraft}
             onChange={(e) => setSetlistDraft(e.target.value)}
             placeholder="セットリスト（任意）: 1行1曲、曲名,アーティスト で入力"
-            className="w-full min-h-24 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full min-h-24 bg-[#060608] border border-[rgba(255,255,255,0.08)] text-[#f0eff5] placeholder-[#6b6a75] px-3 py-2 focus:outline-none focus:border-[#ff2d55] transition-colors"
           />
           <button
             type="submit"
             disabled={isSavingBand}
-            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-70 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+            className="bg-[#ff2d55] hover:bg-[#ff5470] disabled:opacity-60 text-white font-(family-name:--font-space-mono) text-xs tracking-[2px] py-3 px-6 transition-colors"
           >
             {isSavingBand ? "作成中..." : "バンドを作成"}
           </button>
         </form>
       </section>
 
-      <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
-        <h2 className="text-lg font-bold text-gray-900">エントリー申請</h2>
+      <section className="border border-[rgba(255,255,255,0.08)] bg-[#0d0d12] p-6 space-y-4">
+        <h2 className="font-(family-name:--font-space-mono) text-xs tracking-[3px] text-[#6b6a75] uppercase">エントリー申請</h2>
         {bands.length > 0 ? (
           <div className="flex flex-wrap items-center gap-2">
             <select
               value={selectedBandId}
               onChange={(e) => setSelectedBandId(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="bg-[#060608] border border-[rgba(255,255,255,0.08)] text-[#f0eff5] px-3 py-2 focus:outline-none focus:border-[#ff2d55] transition-colors"
             >
               {bands.map((band) => (
                 <option key={band.id} value={band.id}>
@@ -353,53 +353,53 @@ export default function PerformerPage() {
             {selectedBandId && (
               <Link
                 href={`/performer/bands/${selectedBandId}`}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                className="border border-[rgba(255,255,255,0.12)] px-3 py-2 text-sm font-(family-name:--font-space-mono) tracking-[1px] text-[#6b6a75] hover:text-[#f0eff5] hover:border-[rgba(255,255,255,0.25)] transition-colors"
               >
                 選択中バンドを編集
               </Link>
             )}
           </div>
         ) : (
-          <p className="text-sm text-gray-600">先にバンドを作成してください。</p>
+          <p className="text-sm text-[#6b6a75]">先にバンドを作成してください。</p>
         )}
 
         <div className="space-y-3">
           {events.map((event) => (
-            <article key={event.id} className="rounded-lg border border-gray-200 p-4">
-              <h3 className="text-base font-bold text-gray-900">{event.title}</h3>
-              <p className="mt-1 text-sm text-gray-600">📅 {event.eventDate} / 📍 {event.venueName}</p>
+            <article key={event.id} className="border border-[rgba(255,255,255,0.08)] p-4 hover:border-[rgba(255,255,255,0.12)] transition-colors">
+              <h3 className="text-base font-semibold text-[#f0eff5]">{event.title}</h3>
+              <p className="mt-1 text-sm text-[#6b6a75]">📅 {event.eventDate} / 📍 {event.venueName}</p>
               {bandEntries.some((entry) => entry.eventId === event.id) && (
-                <p className="mt-2 text-xs text-blue-700">このバンドは既に申請済みです。</p>
+                <p className="mt-2 font-(family-name:--font-space-mono) text-[10px] tracking-[1px] text-[#ff2d55]">このバンドは既に申請済みです。</p>
               )}
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => handleOpenEntryModal(event.id)}
                   disabled={bands.length === 0 || entryEventId === event.id || bandEntries.some((entry) => entry.eventId === event.id)}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors"
+                  className="bg-[#ff2d55] hover:bg-[#ff5470] disabled:opacity-60 text-white font-(family-name:--font-space-mono) text-xs tracking-[1px] py-2 px-4 transition-colors"
                 >
                   {entryEventId === event.id ? "申請中..." : bandEntries.some((entry) => entry.eventId === event.id) ? "申請済み" : "このイベントに申請"}
                 </button>
                 <Link
                   href={`/events/${event.id}`}
-                  className="border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold py-2 px-4 rounded-lg transition-colors"
+                  className="border border-[rgba(255,255,255,0.12)] px-4 py-2 text-sm font-(family-name:--font-space-mono) tracking-[1px] text-[#6b6a75] hover:text-[#f0eff5] hover:border-[rgba(255,255,255,0.25)] transition-colors"
                 >
                   詳細
                 </Link>
               </div>
             </article>
           ))}
-          {events.length === 0 && <p className="text-sm text-gray-500">公開中イベントがありません。</p>}
+          {events.length === 0 && <p className="text-sm text-[#6b6a75]">公開中イベントがありません。</p>}
         </div>
       </section>
 
-      <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
+      <section className="border border-[rgba(255,255,255,0.08)] bg-[#0d0d12] p-6 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-bold text-gray-900">申請済みエントリー</h2>
+          <h2 className="font-(family-name:--font-space-mono) text-xs tracking-[3px] text-[#6b6a75] uppercase">申請済みエントリー</h2>
           <select
             value={entryStatusFilter}
             onChange={(e) => setEntryStatusFilter(e.target.value as "" | "pending" | "approved" | "rejected")}
-            className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="bg-[#060608] border border-[rgba(255,255,255,0.08)] text-[#f0eff5] px-3 py-2 focus:outline-none focus:border-[#ff2d55] transition-colors"
           >
             <option value="">全件</option>
             <option value="pending">申請中</option>
@@ -410,45 +410,45 @@ export default function PerformerPage() {
 
         <div className="space-y-3">
           {bandEntries.map((entry) => (
-            <article key={entry.id} className="rounded-lg border border-gray-200 p-4">
+            <article key={entry.id} className="border border-[rgba(255,255,255,0.08)] p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h3 className="text-base font-bold text-gray-900">{entry.eventTitle}</h3>
-                  <p className="mt-1 text-sm text-gray-600">📅 {entry.eventDate} / 📍 {entry.venueName}</p>
-                  <p className="mt-1 text-xs text-gray-500">申請日時: {new Date(entry.createdAt).toLocaleString("ja-JP")}</p>
+                  <h3 className="text-base font-semibold text-[#f0eff5]">{entry.eventTitle}</h3>
+                  <p className="mt-1 text-sm text-[#6b6a75]">📅 {entry.eventDate} / 📍 {entry.venueName}</p>
+                  <p className="mt-1 font-(family-name:--font-space-mono) text-[10px] text-[#6b6a75]">申請日時: {new Date(entry.createdAt).toLocaleString("ja-JP")}</p>
                 </div>
                 <span
                   className={
                     entry.status === "pending"
-                      ? "inline-flex rounded-full bg-yellow-100 px-2.5 py-1 text-xs font-semibold text-yellow-800"
+                      ? "inline-flex bg-[rgba(255,170,0,0.12)] px-2.5 py-1 font-(family-name:--font-space-mono) text-[10px] tracking-[1px] text-[#ffaa00]"
                       : entry.status === "approved"
-                        ? "inline-flex rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-800"
-                        : "inline-flex rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-700"
+                        ? "inline-flex bg-[rgba(0,220,120,0.12)] px-2.5 py-1 font-(family-name:--font-space-mono) text-[10px] tracking-[1px] text-[#00dc78]"
+                        : "inline-flex bg-[rgba(255,45,85,0.12)] px-2.5 py-1 font-(family-name:--font-space-mono) text-[10px] tracking-[1px] text-[#ff2d55]"
                   }
                 >
                   {entry.status === "pending" ? "申請中" : entry.status === "approved" ? "承認済み" : "却下"}
                 </span>
               </div>
-              {entry.message && <p className="mt-2 text-sm text-gray-700">メッセージ: {entry.message}</p>}
-              {entry.rejectionReason && <p className="mt-2 text-sm text-red-700">却下理由: {entry.rejectionReason}</p>}
+              {entry.message && <p className="mt-2 text-sm text-[#6b6a75]">メッセージ: {entry.message}</p>}
+              {entry.rejectionReason && <p className="mt-2 text-sm text-[#ff5470]">却下理由: {entry.rejectionReason}</p>}
             </article>
           ))}
-          {bandEntries.length === 0 && <p className="text-sm text-gray-500">申請済みエントリーはありません。</p>}
+          {bandEntries.length === 0 && <p className="text-sm text-[#6b6a75]">申請済みエントリーはありません。</p>}
         </div>
       </section>
 
       {entryModalEventId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={handleCloseEntryModal}>
-          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-bold text-gray-900">エントリー申請</h2>
-            <p className="mt-1 text-sm text-gray-600">申請時に送るメッセージを入力できます（任意）。</p>
+          <div className="w-full max-w-md border border-[rgba(255,255,255,0.12)] bg-[#0d0d12] p-6" onClick={(e) => e.stopPropagation()}>
+            <h2 className="font-(family-name:--font-bebas-neue) text-2xl tracking-wider text-[#f0eff5]">エントリー申請</h2>
+            <p className="mt-1 text-sm text-[#6b6a75]">申請時に送るメッセージを入力できます（任意）。</p>
 
             <div className="mt-4">
-              <label className="mb-1 block text-sm font-semibold text-gray-700">申請メッセージ</label>
+              <label className="mb-1.5 block font-(family-name:--font-space-mono) text-[10px] tracking-[2px] text-[#6b6a75] uppercase">申請メッセージ</label>
               <textarea
                 value={entryMessage}
                 onChange={(e) => setEntryMessage(e.target.value)}
-                className="w-full min-h-24 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full min-h-24 bg-[#060608] border border-[rgba(255,255,255,0.08)] text-[#f0eff5] placeholder-[#6b6a75] px-3 py-2 focus:outline-none focus:border-[#ff2d55] transition-colors"
               />
             </div>
 
@@ -456,7 +456,7 @@ export default function PerformerPage() {
               <button
                 type="button"
                 onClick={handleCloseEntryModal}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                className="border border-[rgba(255,255,255,0.12)] px-4 py-2 font-(family-name:--font-space-mono) text-xs tracking-[1px] text-[#6b6a75] hover:text-[#f0eff5] hover:border-[rgba(255,255,255,0.25)] transition-colors"
               >
                 キャンセル
               </button>
@@ -464,7 +464,7 @@ export default function PerformerPage() {
                 type="button"
                 onClick={handleEntry}
                 disabled={entryEventId === entryModalEventId}
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-70"
+                className="bg-[#ff2d55] hover:bg-[#ff5470] disabled:opacity-60 text-white font-(family-name:--font-space-mono) text-xs tracking-[2px] px-6 py-2 transition-colors"
               >
                 {entryEventId === entryModalEventId ? "申請中..." : "申請する"}
               </button>

@@ -31,17 +31,18 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="mx-auto max-w-md rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
-      <h1 className="text-2xl font-bold text-gray-900">ログイン</h1>
-      <p className="mt-1 text-sm text-gray-600">メールアドレスとパスワードを入力してください。</p>
+    <div className="mx-auto max-w-md border border-[rgba(255,255,255,0.08)] bg-[#0d0d12] p-8">
+      <p className="font-(family-name:--font-space-mono) text-xs tracking-[4px] text-[#ff2d55] mb-3">— SIGN IN</p>
+      <h1 className="font-(family-name:--font-bebas-neue) text-3xl tracking-tight text-[#f0eff5]">ログイン</h1>
+      <p className="mt-1 text-sm text-[#6b6a75]">メールアドレスとパスワードを入力してください。</p>
 
       {error && (
-        <div className="mt-4 bg-red-50 text-red-700 border border-red-200 rounded-lg px-4 py-3 text-sm">{error}</div>
+        <div className="mt-4 border border-red-500/20 bg-red-900/20 px-4 py-3 text-sm text-red-400">{error}</div>
       )}
 
-      <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
+      <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
         <div>
-          <label htmlFor="email" className="mb-1 block text-sm font-semibold text-gray-700">
+          <label htmlFor="email" className="mb-1.5 block font-(family-name:--font-space-mono) text-xs tracking-[2px] text-[#6b6a75]">
             メールアドレス
           </label>
           <input
@@ -50,12 +51,12 @@ export default function LoginPage() {
             required
             value={form.email}
             onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border border-[rgba(255,255,255,0.08)] bg-[#060608] px-3 py-2.5 text-sm text-[#f0eff5] placeholder-[#6b6a75] focus:outline-none focus:border-[#ff2d55] focus:ring-1 focus:ring-[#ff2d55]/30 transition-colors"
           />
         </div>
 
         <div>
-          <label htmlFor="password" className="mb-1 block text-sm font-semibold text-gray-700">
+          <label htmlFor="password" className="mb-1.5 block font-(family-name:--font-space-mono) text-xs tracking-[2px] text-[#6b6a75]">
             パスワード
           </label>
           <PasswordInput
@@ -69,15 +70,15 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-70 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+          className="w-full bg-[#ff2d55] hover:bg-[#ff5470] disabled:opacity-50 font-(family-name:--font-space-mono) text-xs tracking-[2px] text-white py-3 px-4 transition-all hover:shadow-[0_16px_40px_rgba(255,45,85,0.40)] hover:-translate-y-0.5"
         >
           {isSubmitting ? "ログイン中..." : "ログイン"}
         </button>
       </form>
 
-      <p className="mt-4 text-sm text-gray-600">
+      <p className="mt-5 text-sm text-[#6b6a75]">
         アカウントをお持ちでないですか？{" "}
-        <Link href="/register" className="font-semibold text-blue-600 hover:text-blue-700">
+        <Link href="/register" className="text-[#ff2d55] hover:text-[#ff5470] transition-colors">
           新規登録はこちら
         </Link>
       </p>

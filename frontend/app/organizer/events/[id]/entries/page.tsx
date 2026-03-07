@@ -215,30 +215,30 @@ export default function OrganizerEntriesPage({ params }: OrganizerEntriesPagePro
   };
 
   if (isLoading) {
-    return <p className="text-sm text-gray-600">読み込み中...</p>;
+    return <p className="font-(family-name:--font-space-mono) text-xs text-[#6b6a75]">読み込み中...</p>;
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">エントリー申請管理</h1>
-        <p className="mt-1 text-sm text-gray-600">出演申請の承認・却下を行います。</p>
+        <h1 className="font-(family-name:--font-bebas-neue) text-4xl tracking-wider text-[#f0eff5]">エントリー申請管理</h1>
+        <p className="mt-1 text-sm text-[#6b6a75]">出演申請の承認・却下を行います。</p>
       </div>
 
-      {error && <div className="bg-red-50 text-red-700 border border-red-200 rounded-lg px-4 py-3 text-sm">{error}</div>}
+      {error && <div className="border border-[rgba(255,45,85,0.2)] bg-[rgba(255,45,85,0.08)] px-4 py-3 text-sm text-[#ff5470]">{error}</div>}
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex flex-col md:flex-row gap-3">
+      <div className="border border-[rgba(255,255,255,0.08)] bg-[#0d0d12] p-4 flex flex-col md:flex-row gap-3">
         <input
           type="text"
           value={searchWord}
           onChange={(e) => setSearchWord(e.target.value)}
           placeholder="バンド名・メッセージ・却下理由で検索"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full bg-[#060608] border border-[rgba(255,255,255,0.08)] text-[#f0eff5] placeholder-[#6b6a75] px-3 py-2 focus:outline-none focus:border-[#ff2d55] transition-colors"
         />
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value as "" | "pending" | "approved" | "rejected")}
-          className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="bg-[#060608] border border-[rgba(255,255,255,0.08)] text-[#f0eff5] px-3 py-2 focus:outline-none focus:border-[#ff2d55] transition-colors"
         >
           <option value="">全件</option>
           <option value="pending">未対応</option>
@@ -249,37 +249,37 @@ export default function OrganizerEntriesPage({ params }: OrganizerEntriesPagePro
           type="button"
           onClick={handleExportCsv}
           disabled={isExporting}
-          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-70 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors"
+          className="bg-[#ff2d55] hover:bg-[#ff5470] disabled:opacity-60 text-white font-(family-name:--font-space-mono) text-xs tracking-[2px] py-2 px-5 transition-colors"
         >
           {isExporting ? "出力中..." : "CSV出力"}
         </button>
       </div>
 
-      <p className="text-sm font-medium text-gray-700">{filteredItems.length}件</p>
+      <p className="font-(family-name:--font-space-mono) text-[10px] tracking-[2px] text-[#6b6a75]">{filteredItems.length}件</p>
 
       <div className="space-y-3">
         {filteredItems.map((item) => (
-          <article key={item.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+          <article key={item.id} className="border border-[rgba(255,255,255,0.08)] bg-[#0d0d12] p-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h2 className="text-lg font-bold text-gray-900">{item.bandName}</h2>
-                <p className="mt-1 text-xs text-gray-500">申請日時: {new Date(item.createdAt).toLocaleString("ja-JP")}</p>
+                <h2 className="text-base font-semibold text-[#f0eff5]">{item.bandName}</h2>
+                <p className="mt-1 font-(family-name:--font-space-mono) text-[10px] text-[#6b6a75]">申請日時: {new Date(item.createdAt).toLocaleString("ja-JP")}</p>
               </div>
               <span
                 className={
                   item.status === "pending"
-                    ? "inline-flex rounded-full bg-yellow-100 px-2.5 py-1 text-xs font-semibold text-yellow-800"
+                    ? "inline-flex bg-[rgba(255,170,0,0.12)] px-2.5 py-1 font-(family-name:--font-space-mono) text-[10px] tracking-[1px] text-[#ffaa00]"
                     : item.status === "approved"
-                      ? "inline-flex rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-800"
-                      : "inline-flex rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-700"
+                      ? "inline-flex bg-[rgba(0,220,120,0.12)] px-2.5 py-1 font-(family-name:--font-space-mono) text-[10px] tracking-[1px] text-[#00dc78]"
+                      : "inline-flex bg-[rgba(255,45,85,0.12)] px-2.5 py-1 font-(family-name:--font-space-mono) text-[10px] tracking-[1px] text-[#ff5470]"
                 }
               >
                 {item.status === "pending" ? "未対応" : item.status === "approved" ? "承認済み" : "却下"}
               </span>
             </div>
 
-            {item.message && <p className="mt-3 whitespace-pre-wrap text-sm text-gray-700">申請メッセージ: {item.message}</p>}
-            {item.rejectionReason && <p className="mt-2 text-sm text-red-700">却下理由: {item.rejectionReason}</p>}
+            {item.message && <p className="mt-3 whitespace-pre-wrap text-sm text-[#6b6a75]">申請メッセージ: {item.message}</p>}
+            {item.rejectionReason && <p className="mt-2 text-sm text-[#ff5470]">却下理由: {item.rejectionReason}</p>}
 
             {item.status === "pending" && (
               <div className="mt-4 flex gap-2">
@@ -287,7 +287,7 @@ export default function OrganizerEntriesPage({ params }: OrganizerEntriesPagePro
                   type="button"
                   onClick={() => handleOpenApproveModal(item.id)}
                   disabled={processingId === item.id}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-70 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors"
+                  className="bg-[#ff2d55] hover:bg-[#ff5470] disabled:opacity-60 text-white font-(family-name:--font-space-mono) text-xs tracking-[1px] py-2 px-4 transition-colors"
                 >
                   承認
                 </button>
@@ -295,7 +295,7 @@ export default function OrganizerEntriesPage({ params }: OrganizerEntriesPagePro
                   type="button"
                   onClick={() => handleOpenRejectModal(item.id)}
                   disabled={processingId === item.id}
-                  className="bg-red-600 hover:bg-red-700 disabled:opacity-70 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors"
+                  className="border border-[rgba(255,45,85,0.4)] hover:border-[#ff2d55] disabled:opacity-60 text-[#ff5470] font-(family-name:--font-space-mono) text-xs tracking-[1px] py-2 px-4 transition-colors"
                 >
                   却下
                 </button>
@@ -305,43 +305,43 @@ export default function OrganizerEntriesPage({ params }: OrganizerEntriesPagePro
         ))}
 
         {filteredItems.length === 0 && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-sm text-gray-500">エントリー申請はありません。</div>
+          <div className="border border-[rgba(255,255,255,0.08)] bg-[#0d0d12] p-6 font-(family-name:--font-space-mono) text-xs text-[#6b6a75]">エントリー申請はありません。</div>
         )}
       </div>
 
       {approveModalEntryId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={handleCloseApproveModal}>
-          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-bold text-gray-900">エントリー承認</h2>
-            <p className="mt-1 text-sm text-gray-600">開始時刻・終了時刻・出演順を必要に応じて入力してください。</p>
+          <div className="w-full max-w-md border border-[rgba(255,255,255,0.12)] bg-[#0d0d12] p-6" onClick={(e) => e.stopPropagation()}>
+            <h2 className="font-(family-name:--font-bebas-neue) text-2xl tracking-wider text-[#f0eff5]">エントリー承認</h2>
+            <p className="mt-1 text-sm text-[#6b6a75]">開始時刻・終了時刻・出演順を必要に応じて入力してください。</p>
 
             <div className="mt-4 space-y-3">
               <div>
-                <label className="mb-1 block text-sm font-semibold text-gray-700">開始時刻（任意）</label>
+                <label className="mb-1.5 block font-(family-name:--font-space-mono) text-[10px] tracking-[2px] text-[#6b6a75] uppercase">開始時刻（任意）</label>
                 <input
                   type="time"
                   value={approveStartTime}
                   onChange={(e) => setApproveStartTime(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-[#060608] border border-[rgba(255,255,255,0.08)] text-[#f0eff5] px-3 py-2 focus:outline-none focus:border-[#ff2d55] transition-colors"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-semibold text-gray-700">終了時刻（任意）</label>
+                <label className="mb-1.5 block font-(family-name:--font-space-mono) text-[10px] tracking-[2px] text-[#6b6a75] uppercase">終了時刻（任意）</label>
                 <input
                   type="time"
                   value={approveEndTime}
                   onChange={(e) => setApproveEndTime(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-[#060608] border border-[rgba(255,255,255,0.08)] text-[#f0eff5] px-3 py-2 focus:outline-none focus:border-[#ff2d55] transition-colors"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-sm font-semibold text-gray-700">出演順（任意）</label>
+                <label className="mb-1.5 block font-(family-name:--font-space-mono) text-[10px] tracking-[2px] text-[#6b6a75] uppercase">出演順（任意）</label>
                 <input
                   type="number"
                   min={1}
                   value={approveOrder}
                   onChange={(e) => setApproveOrder(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-[#060608] border border-[rgba(255,255,255,0.08)] text-[#f0eff5] px-3 py-2 focus:outline-none focus:border-[#ff2d55] transition-colors"
                 />
               </div>
             </div>
@@ -350,7 +350,7 @@ export default function OrganizerEntriesPage({ params }: OrganizerEntriesPagePro
               <button
                 type="button"
                 onClick={handleCloseApproveModal}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                className="border border-[rgba(255,255,255,0.12)] hover:border-[rgba(255,255,255,0.25)] text-[#6b6a75] hover:text-[#f0eff5] font-(family-name:--font-space-mono) text-xs tracking-[1px] px-4 py-2 transition-colors"
               >
                 キャンセル
               </button>
@@ -358,7 +358,7 @@ export default function OrganizerEntriesPage({ params }: OrganizerEntriesPagePro
                 type="button"
                 onClick={handleApprove}
                 disabled={processingId === approveModalEntryId}
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-70"
+                className="bg-[#ff2d55] hover:bg-[#ff5470] disabled:opacity-60 text-white font-(family-name:--font-space-mono) text-xs tracking-[2px] px-6 py-2 transition-colors"
               >
                 {processingId === approveModalEntryId ? "承認中..." : "承認する"}
               </button>
@@ -369,16 +369,16 @@ export default function OrganizerEntriesPage({ params }: OrganizerEntriesPagePro
 
       {rejectModalEntryId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={handleCloseRejectModal}>
-          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-bold text-gray-900">エントリー却下</h2>
-            <p className="mt-1 text-sm text-gray-600">却下理由を入力してください。</p>
+          <div className="w-full max-w-md border border-[rgba(255,255,255,0.12)] bg-[#0d0d12] p-6" onClick={(e) => e.stopPropagation()}>
+            <h2 className="font-(family-name:--font-bebas-neue) text-2xl tracking-wider text-[#f0eff5]">エントリー却下</h2>
+            <p className="mt-1 text-sm text-[#6b6a75]">却下理由を入力してください。</p>
 
             <div className="mt-4">
-              <label className="mb-1 block text-sm font-semibold text-gray-700">却下理由</label>
+              <label className="mb-1.5 block font-(family-name:--font-space-mono) text-[10px] tracking-[2px] text-[#6b6a75] uppercase">却下理由</label>
               <textarea
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
-                className="w-full min-h-24 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="w-full min-h-24 bg-[#060608] border border-[rgba(255,255,255,0.08)] text-[#f0eff5] placeholder-[#6b6a75] px-3 py-2 focus:outline-none focus:border-[#ff2d55] transition-colors"
               />
             </div>
 
@@ -386,7 +386,7 @@ export default function OrganizerEntriesPage({ params }: OrganizerEntriesPagePro
               <button
                 type="button"
                 onClick={handleCloseRejectModal}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                className="border border-[rgba(255,255,255,0.12)] hover:border-[rgba(255,255,255,0.25)] text-[#6b6a75] hover:text-[#f0eff5] font-(family-name:--font-space-mono) text-xs tracking-[1px] px-4 py-2 transition-colors"
               >
                 キャンセル
               </button>
@@ -394,7 +394,7 @@ export default function OrganizerEntriesPage({ params }: OrganizerEntriesPagePro
                 type="button"
                 onClick={handleReject}
                 disabled={processingId === rejectModalEntryId}
-                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-70"
+                className="border border-[rgba(255,45,85,0.4)] hover:border-[#ff2d55] disabled:opacity-60 text-[#ff5470] hover:text-[#ff2d55] font-(family-name:--font-space-mono) text-xs tracking-[1px] px-6 py-2 transition-colors"
               >
                 {processingId === rejectModalEntryId ? "却下中..." : "却下する"}
               </button>
