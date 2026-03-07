@@ -1,0 +1,703 @@
+/**
+ * ============================================================
+ *  STAGECRAFT — Design System Tokens
+ *  音楽ライブ イベント管理アプリ LP
+ * ============================================================
+ *
+ *  INDEX
+ *  1.  Brand Colors
+ *  2.  Semantic Colors
+ *  3.  Genre Badge Colors
+ *  4.  Gradients & Overlays
+ *  5.  Typography — Families
+ *  6.  Typography — Scale
+ *  7.  Typography — Weight
+ *  8.  Typography — Letter Spacing
+ *  9.  Typography — Line Height
+ * 10.  Spacing Scale
+ * 11.  Border & Radius
+ * 12.  Shadow & Glow
+ * 13.  Z-Index
+ * 14.  Motion — Duration
+ * 15.  Motion — Easing
+ * 16.  Motion — Keyframes
+ * 17.  Layout
+ * 18.  Component Tokens — Navigation
+ * 19.  Component Tokens — Buttons
+ * 20.  Component Tokens — Cards
+ * 21.  Component Tokens — Badge / Pill
+ * 22.  Component Tokens — Cursor
+ * 23.  Component Tokens — Section
+ * 24.  Component Tokens — Ticker
+ * 25.  Component Tokens — Capacity Bar
+ * 26.  Component Tokens — Avatar
+ * 27.  Component Tokens — Pricing
+ * 28.  Noise Overlay
+ * ============================================================
+ */
+
+
+/* ============================================================
+   1. BRAND COLORS
+   ============================================================ */
+:root {
+
+  /* Primary Palette */
+  --color-brand-red:        #ff2d55;  /* Accent — CTA, highlights, icons */
+  --color-brand-red-hover:  #ff5470;  /* Hover state for red */
+  --color-brand-yellow:     #ffcc00;  /* Accent 2 — Jazz genre, avatar gradient */
+  --color-brand-cyan:       #00e5ff;  /* Accent 3 — EDM genre, cool highlights */
+  --color-brand-purple:     #8b5cf6;  /* Used in avatar gradient (testimonial) */
+
+  /* Success */
+  --color-success:          #22c55e;  /* Live/online indicator dot */
+  --color-success-glow:     #22c55e;  /* Box-shadow glow color for status dot */
+
+
+/* ============================================================
+   2. SEMANTIC COLORS
+   ============================================================ */
+
+  /* Backgrounds */
+  --color-bg:               #060608;  /* Page background — near-black */
+  --color-surface:          #0d0d12;  /* Card / section alternate background */
+
+  /* Text */
+  --color-text:             #f0eff5;  /* Primary text — off-white */
+  --color-text-muted:       #6b6a75;  /* Secondary / placeholder text */
+  --color-text-subtle:      rgba(240, 239, 245, 0.55);  /* Feature card descriptions */
+  --color-text-body:        rgba(240, 239, 245, 0.65);  /* Hero body copy */
+  --color-text-testimonial: rgba(240, 239, 245, 0.80);  /* Testimonial quote text */
+  --color-text-footer-link: rgba(240, 239, 245, 0.60);  /* Footer links */
+
+  /* Border */
+  --color-border:           rgba(255, 255, 255, 0.08);  /* Default border */
+  --color-border-hover:     rgba(255, 255, 255, 0.15);  /* Hovered card border */
+  --color-border-strong:    rgba(255, 255, 255, 0.20);  /* Testimonial hover border */
+
+  /* Accent (aliases for convenience) */
+  --color-accent:           var(--color-brand-red);
+  --color-accent-2:         var(--color-brand-yellow);
+  --color-accent-3:         var(--color-brand-cyan);
+
+
+/* ============================================================
+   3. GENRE BADGE COLORS
+   ============================================================ */
+
+  /* Rock */
+  --color-genre-rock-bg:    rgba(255, 45,  85,  0.20);
+  --color-genre-rock-text:  var(--color-brand-red);
+
+  /* Jazz */
+  --color-genre-jazz-bg:    rgba(255, 204, 0,   0.20);
+  --color-genre-jazz-text:  var(--color-brand-yellow);
+
+  /* EDM */
+  --color-genre-edm-bg:     rgba(0,   229, 255, 0.20);
+  --color-genre-edm-text:   var(--color-brand-cyan);
+
+
+/* ============================================================
+   4. GRADIENTS & OVERLAYS
+   ============================================================ */
+
+  /* Hero section ambient glow */
+  --gradient-hero-bg:
+    radial-gradient(ellipse 60% 60% at 70% 50%, rgba(255, 45, 85, 0.12), transparent),
+    radial-gradient(ellipse 40% 80% at 20% 80%, rgba(0, 229, 255, 0.06), transparent);
+
+  /* CTA section glow */
+  --gradient-cta-bg:
+    radial-gradient(ellipse 80% 60% at 50% 50%, rgba(255, 45, 85, 0.10), transparent);
+
+  /* Mockup glow (phone frame) */
+  --gradient-mockup-glow:
+    radial-gradient(circle, rgba(255, 45, 85, 0.30), transparent 70%);
+
+  /* Navigation fade */
+  --gradient-nav-bg:
+    linear-gradient(to bottom, rgba(6, 6, 8, 0.90), transparent);
+
+  /* Avatar gradients */
+  --gradient-avatar-default:   linear-gradient(135deg, var(--color-brand-red),    var(--color-brand-cyan));
+  --gradient-avatar-yellow:    linear-gradient(135deg, var(--color-brand-yellow), var(--color-brand-red));
+  --gradient-avatar-purple:    linear-gradient(135deg, var(--color-brand-cyan),   var(--color-brand-purple));
+
+  /* Capacity bar fills */
+  --gradient-capacity-high:    var(--color-brand-red);    /* 70 %+ occupancy */
+  --gradient-capacity-mid:     var(--color-brand-yellow); /* 40–70 % */
+  --gradient-capacity-low:     var(--color-brand-cyan);   /* < 40 % */
+
+  /* Background grid overlay */
+  --grid-bg-image:
+    linear-gradient(var(--color-border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-border) 1px, transparent 1px);
+  --grid-bg-size:              60px 60px;
+  --grid-mask:
+    radial-gradient(ellipse at center, black 30%, transparent 80%);
+
+  /* Noise texture overlay opacity */
+  --noise-opacity:             0.40;
+
+
+/* ============================================================
+   5. TYPOGRAPHY — FAMILIES
+   ============================================================ */
+
+  /* Google Fonts import required:
+     https://fonts.googleapis.com/css2?
+       family=Bebas+Neue
+       &family=Noto+Sans+JP:wght@300;400;700
+       &family=Space+Mono:wght@400;700
+       &display=swap
+  */
+  --font-display:   'Bebas Neue', sans-serif;   /* Hero headings, section titles, numbers */
+  --font-body:      'Noto Sans JP', sans-serif; /* All body copy, descriptions */
+  --font-mono:      'Space Mono', monospace;    /* Labels, eyebrows, nav links, buttons */
+
+
+/* ============================================================
+   6. TYPOGRAPHY — SCALE
+   ============================================================ */
+
+  /* Display */
+  --text-hero:          clamp(72px, 8vw, 120px); /* h1 hero heading */
+  --text-h2:            clamp(48px, 5vw, 80px);  /* Section headings */
+  --text-logo:          28px;                    /* Nav logo */
+  --text-logo-footer:   22px;                    /* Footer logo */
+  --text-display-card:  64px;                    /* Feature card ghost number */
+  --text-plan-price:    72px;                    /* Pricing plan price */
+  --text-stat:          42px;                    /* Hero stat numbers */
+  --text-feature-title: 28px;                    /* Feature card title */
+  --text-step-title:    22px;                    /* How-it-works step title */
+  --text-quote-mark:    100px;                   /* Testimonial decorative quote */
+  --text-ticker:        22px;                    /* Ticker band items */
+
+  /* Body */
+  --text-body-lg:       17px;  /* Hero description paragraph */
+  --text-body-md:       16px;  /* Testimonial quote text */
+  --text-body-sm:       14px;  /* Feature desc, plan features, footer links */
+  --text-body-xs:       13px;  /* Nav links, button labels, ghost button */
+
+  /* Labels & Metadata */
+  --text-label:         11px;  /* Section eyebrow / label */
+  --text-caption:       10px;  /* Card date, capacity label */
+  --text-badge:          9px;  /* Genre badge inside cards */
+  --text-footer-col:    10px;  /* Footer column headings */
+  --text-card-name:     14px;  /* Event card name */
+
+
+/* ============================================================
+   7. TYPOGRAPHY — WEIGHT
+   ============================================================ */
+
+  --weight-light:   300;  /* Default body weight */
+  --weight-regular: 400;
+  --weight-bold:    700;
+
+
+/* ============================================================
+   8. TYPOGRAPHY — LETTER SPACING
+   ============================================================ */
+
+  --tracking-logo:    4px;   /* Brand logotype */
+  --tracking-wide:    4px;   /* Section labels, hero eyebrow */
+  --tracking-normal:  2px;   /* Nav links, button text, hero stat label */
+  --tracking-tight:   1px;   /* h2 headings, feature titles */
+  --tracking-badge:   2px;   /* Genre badges, footer column headings */
+  --tracking-mono:    1px;   /* Author role, plan name */
+  --tracking-ticker:  4px;   /* Ticker items */
+
+
+/* ============================================================
+   9. TYPOGRAPHY — LINE HEIGHT
+   ============================================================ */
+
+  --leading-hero:   0.92;  /* h1 (ultra-tight display) */
+  --leading-h2:     0.95;  /* h2 headings */
+  --leading-body:   1.80;  /* Body paragraphs */
+  --leading-cards:  1.70;  /* Step descriptions, footer links */
+  --leading-tight:  1.00;  /* Stat numbers, plan price */
+
+
+/* ============================================================
+   10. SPACING SCALE
+   ============================================================ */
+
+  --space-2:    2px;
+  --space-4:    4px;
+  --space-6:    6px;
+  --space-8:    8px;
+  --space-10:   10px;
+  --space-12:   12px;
+  --space-14:   14px;
+  --space-16:   16px;
+  --space-18:   18px;
+  --space-20:   20px;
+  --space-24:   24px;
+  --space-28:   28px;
+  --space-32:   32px;
+  --space-36:   36px;
+  --space-40:   40px;
+  --space-48:   48px;
+  --space-50:   50px;
+  --space-60:   60px;
+  --space-80:   80px;
+  --space-120:  120px;
+  --space-160:  160px;
+
+  /* Named semantic spacing */
+  --spacing-section-y:      120px;  /* Vertical padding for full sections */
+  --spacing-section-x:       60px;  /* Horizontal padding for full sections */
+  --spacing-section-y-sm:    80px;  /* Smaller section vertical padding */
+  --spacing-hero-pt:        120px;  /* Hero padding-top (below fixed nav) */
+  --spacing-hero-pb:         80px;
+  --spacing-cta-y:          160px;
+  --spacing-card-pad:        50px;  /* Feature / price card inner padding (y) */
+  --spacing-card-pad-x:      40px;  /* Feature / price card inner padding (x) */
+  --spacing-card-pad-sm:     14px;  /* Event card inner padding */
+  --spacing-nav-y:           24px;
+  --spacing-footer-gap:      60px;  /* Footer column gap */
+  --spacing-footer-y:        60px;
+
+
+/* ============================================================
+   11. BORDER & RADIUS
+   ============================================================ */
+
+  /* Border widths */
+  --border-width-default: 1px;
+  --border-width-accent:  2px;
+
+  /* Border radius */
+  --radius-none:   0;
+  --radius-sm:     2px;    /* Nav CTA button, featured badge */
+  --radius-md:     4px;    /* Genre badge */
+  --radius-lg:     16px;   /* Event card (phone frame content) */
+  --radius-xl:     36px;   /* Phone frame outer */
+  --radius-full:   50%;    /* Circular elements: dot, cursor, avatar, status */
+
+  /* Clip-path — CTA button chamfered corner */
+  --clip-btn-primary: polygon(
+    0 0,
+    calc(100% - 12px) 0,
+    100% 12px,
+    100% 100%,
+    12px 100%,
+    0 calc(100% - 12px)
+  );
+
+
+/* ============================================================
+   12. SHADOW & GLOW
+   ============================================================ */
+
+  /* Phone frame shadow */
+  --shadow-phone:
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 40px 80px rgba(0, 0, 0, 0.60),
+    0 0 60px rgba(255, 45, 85, 0.10);
+
+  /* Primary button hover glow */
+  --shadow-btn-primary-hover:  0 16px 40px rgba(255, 45, 85, 0.40);
+
+  /* Status dot glow */
+  --shadow-status-dot:         0 0 8px var(--color-success-glow);
+
+  /* Featured plan card border glow (uses border-color, no box-shadow) */
+  --shadow-plan-featured:      none;  /* Handled via border-color: --color-accent */
+
+
+/* ============================================================
+   13. Z-INDEX
+   ============================================================ */
+
+  --z-noise:      1000;   /* Noise overlay (body::before) */
+  --z-nav:         500;   /* Fixed navigation */
+  --z-cursor-dot:  9999;  /* Custom cursor dot */
+  --z-cursor-ring: 9998;  /* Custom cursor ring */
+  --z-hero:           2;  /* Hero content columns */
+
+
+/* ============================================================
+   14. MOTION — DURATION
+   ============================================================ */
+
+  --duration-instant:    0.10s;  /* Cursor dot movement */
+  --duration-fast:       0.15s;  /* Cursor ring lag */
+  --duration-base:       0.20s;  /* Button transform, cursor ring resize */
+  --duration-normal:     0.30s;  /* Color transitions, opacity, border */
+  --duration-slow:       0.40s;  /* Card top-border reveal on hover */
+  --duration-enter:      0.50s;  /* Card pop-in animation */
+  --duration-page:       0.70s;  /* Scroll reveal fade */
+  --duration-hero:       1.00s;  /* Hero column fade-up */
+  --duration-bar:        1.50s;  /* Capacity bar fill */
+  --duration-pulse:      2.00s;  /* Logo dot pulse */
+  --duration-ticker:    20.00s;  /* Ticker loop */
+
+
+/* ============================================================
+   15. MOTION — EASING
+   ============================================================ */
+
+  --ease-default:  ease;
+  --ease-linear:   linear;
+
+
+/* ============================================================
+   16. MOTION — KEYFRAMES
+   (Defined here as documentation; actual @keyframes live in CSS)
+
+  @keyframes fadeUp
+    from: opacity 0, translateY(40px)
+    to:   opacity 1, translateY(0)
+    → Used by: .hero-left (1s), .hero-right (1s delay 0.3s), .hero-stats (1s delay 0.6s)
+
+  @keyframes pulse
+    0%, 100%: scale(1), opacity 1
+    50%:      scale(1.5), opacity 0.6
+    → Used by: .logo-dot (2s infinite)
+
+  @keyframes cardPop
+    from: opacity 0, translateX(20px)
+    to:   opacity 1, translateX(0)
+    → Used by: .event-card (0.5s, staggered: 1s / 1.2s / 1.4s)
+
+  @keyframes fillBar
+    from: width 0
+    to:   width var(--fill)
+    → Used by: .capacity-fill (1.5s, delay 1.5s)
+
+  @keyframes ticker
+    from: translateX(0)
+    to:   translateX(-50%)
+    → Used by: .ticker-inner (20s linear infinite)
+   ============================================================ */
+
+
+/* ============================================================
+   17. LAYOUT
+   ============================================================ */
+
+  /* Grid columns */
+  --grid-hero:       1fr 1fr;       /* Hero two-column split */
+  --grid-features:   repeat(3, 1fr); /* Feature cards */
+  --grid-steps:      repeat(4, 1fr); /* How-it-works steps */
+  --grid-pricing:    repeat(3, 1fr);
+  --grid-testimonials: 2fr 1fr 1fr; /* Wide first testimonial */
+  --grid-footer:     2fr 1fr 1fr 1fr;
+
+  /* Grid gaps */
+  --gap-grid:          2px;   /* Between feature / price / testimonial cards */
+  --gap-steps:         0;
+  --gap-footer-cols:   60px;
+
+  /* Breakpoint (mobile) */
+  --bp-mobile:         900px; /* Single column below this width */
+
+  /* Mockup / phone dimensions */
+  --phone-width:       280px;
+  --phone-wrap-width:  340px;
+  --phone-glow-size:   300px;
+
+
+/* ============================================================
+   18. COMPONENT TOKENS — NAVIGATION
+   ============================================================ */
+
+  --nav-height:             auto;
+  --nav-padding-y:          var(--spacing-nav-y);    /* 24px */
+  --nav-padding-x:          var(--spacing-section-x); /* 60px */
+  --nav-bg:                 var(--gradient-nav-bg);
+  --nav-backdrop-blur:      2px;
+  --nav-link-color:         var(--color-text-muted);
+  --nav-link-color-hover:   var(--color-text);
+  --nav-link-font:          var(--font-mono);
+  --nav-link-size:          var(--text-body-xs);      /* 13px */
+  --nav-link-tracking:      var(--tracking-normal);   /* 2px */
+  --nav-gap:                var(--space-40);
+  --nav-cta-bg:             var(--color-accent);
+  --nav-cta-bg-hover:       var(--color-brand-red-hover);
+  --nav-cta-padding:        var(--space-10) var(--space-24);
+  --nav-cta-radius:         var(--radius-sm);
+
+
+/* ============================================================
+   19. COMPONENT TOKENS — BUTTONS
+   ============================================================ */
+
+  /* Primary (CTA) */
+  --btn-primary-bg:         var(--color-accent);
+  --btn-primary-color:      #ffffff;
+  --btn-primary-padding:    var(--space-18) var(--space-40);
+  --btn-primary-font:       var(--font-mono);
+  --btn-primary-size:       var(--text-body-xs);  /* 13px */
+  --btn-primary-tracking:   var(--tracking-normal);
+  --btn-primary-clip:       var(--clip-btn-primary);
+  --btn-primary-shadow-hover: var(--shadow-btn-primary-hover);
+  --btn-primary-translate-hover: translateY(-3px);
+
+  /* Ghost */
+  --btn-ghost-color:        var(--color-text);
+  --btn-ghost-font:         var(--font-mono);
+  --btn-ghost-size:         var(--text-body-xs);  /* 13px */
+  --btn-ghost-tracking:     var(--tracking-normal);
+  --btn-ghost-opacity:      0.60;
+  --btn-ghost-gap:          var(--space-10);
+
+  /* Plan button (pricing cards) */
+  --btn-plan-padding:       var(--space-16);
+  --btn-plan-font:          var(--font-mono);
+  --btn-plan-size:          12px;
+  --btn-plan-tracking:      var(--tracking-normal);
+  --btn-plan-border:        var(--color-border);
+  --btn-plan-color:         var(--color-text);
+  --btn-plan-bg-hover:      var(--color-accent);
+
+
+/* ============================================================
+   20. COMPONENT TOKENS — CARDS
+   ============================================================ */
+
+  /* Feature cards */
+  --card-feature-bg:              var(--color-surface);
+  --card-feature-border:          var(--color-border);
+  --card-feature-border-hover:    var(--color-border-hover);
+  --card-feature-padding:         var(--spacing-card-pad) var(--spacing-card-pad-x);
+  --card-feature-bar-height:      2px;
+  --card-feature-bar-color:       var(--color-accent);
+  --card-feature-translate-hover: translateY(-4px);
+  --card-feature-number-color:    rgba(255, 255, 255, 0.04);
+  --card-feature-number-size:     var(--text-display-card);
+  --card-feature-icon-size:       40px;
+
+  /* Event cards (inside phone mockup) */
+  --card-event-bg:          rgba(255, 255, 255, 0.04);
+  --card-event-border:      var(--color-border);
+  --card-event-radius:      var(--radius-lg);
+  --card-event-padding:     var(--spacing-card-pad-sm);
+  --card-event-gap:         var(--space-10);
+  --card-event-scale-hover: scale(1.02);
+
+  /* Testimonial cards */
+  --card-testimonial-bg:            var(--color-surface);
+  --card-testimonial-border:        var(--color-border);
+  --card-testimonial-border-hover:  var(--color-border-strong);
+  --card-testimonial-padding:       48px var(--spacing-card-pad-x);
+
+
+/* ============================================================
+   21. COMPONENT TOKENS — BADGE / PILL
+   ============================================================ */
+
+  /* Genre badge */
+  --badge-font:       var(--font-mono);
+  --badge-size:       var(--text-badge);     /* 9px */
+  --badge-tracking:   var(--tracking-badge); /* 2px */
+  --badge-radius:     var(--radius-md);      /* 4px */
+  --badge-padding:    3px 8px;
+
+  /* Section eyebrow label */
+  --label-font:       var(--font-mono);
+  --label-size:       var(--text-label);     /* 11px */
+  --label-tracking:   var(--tracking-wide);  /* 4px */
+  --label-color:      var(--color-accent);
+  --label-bar-width:  30px;
+  --label-bar-height: 1px;
+  --label-gap:        var(--space-12);
+
+  /* Featured plan badge */
+  --badge-featured-bg:        var(--color-accent);
+  --badge-featured-font:      var(--font-mono);
+  --badge-featured-size:      10px;
+  --badge-featured-tracking:  var(--tracking-badge);
+  --badge-featured-padding:   6px 14px;
+  --badge-featured-color:     #ffffff;
+
+
+/* ============================================================
+   22. COMPONENT TOKENS — CURSOR
+   ============================================================ */
+
+  --cursor-dot-size:         12px;
+  --cursor-dot-bg:           var(--color-accent);
+  --cursor-dot-blend:        difference;
+  --cursor-dot-z:            var(--z-cursor-dot);
+
+  --cursor-ring-size:        36px;
+  --cursor-ring-size-hover:  60px;
+  --cursor-ring-border:      1px solid var(--color-accent);
+  --cursor-ring-blend:       difference;
+  --cursor-ring-z:           var(--z-cursor-ring);
+  --cursor-ring-lag:         0.12;  /* Lerp factor for ring follow (JS) */
+
+
+/* ============================================================
+   23. COMPONENT TOKENS — SECTION
+   ============================================================ */
+
+  --section-padding:         var(--spacing-section-y) var(--spacing-section-x);
+  --section-alt-bg:          var(--color-surface);
+
+  /* h2 heading */
+  --heading-h2-font:         var(--font-display);
+  --heading-h2-size:         var(--text-h2);
+  --heading-h2-leading:      var(--leading-h2);
+  --heading-h2-tracking:     var(--tracking-tight);
+  --heading-h2-mb:           var(--space-60);
+  --heading-h2-accent:       var(--color-accent);
+
+  /* Stats row */
+  --stats-border-top:        var(--color-border);
+  --stats-gap:               var(--space-40);
+  --stats-number-font:       var(--font-display);
+  --stats-number-size:       var(--text-stat);
+  --stats-number-accent:     var(--color-accent);
+  --stats-label-font:        var(--font-mono);
+  --stats-label-size:        11px;
+  --stats-label-tracking:    var(--tracking-normal);
+  --stats-label-color:       var(--color-text-muted);
+
+
+/* ============================================================
+   24. COMPONENT TOKENS — TICKER
+   ============================================================ */
+
+  --ticker-bg:           var(--color-accent);
+  --ticker-padding-y:    var(--space-18);
+  --ticker-font:         var(--font-display);
+  --ticker-size:         var(--text-ticker);      /* 22px */
+  --ticker-tracking:     var(--tracking-ticker);  /* 4px */
+  --ticker-color:        #ffffff;
+  --ticker-item-padding: 0 var(--space-40);
+  --ticker-duration:     var(--duration-ticker);  /* 20s */
+  --ticker-separator:    '★';                     /* CSS content value */
+
+
+/* ============================================================
+   25. COMPONENT TOKENS — CAPACITY BAR
+   ============================================================ */
+
+  --capacity-bar-height:      3px;
+  --capacity-bar-bg:          rgba(255, 255, 255, 0.10);
+  --capacity-bar-radius:      2px;
+  --capacity-bar-mt:          var(--space-10);
+  --capacity-fill-duration:   var(--duration-bar);   /* 1.5s */
+  --capacity-fill-delay:      1.5s;
+
+  /* Thresholds */
+  --capacity-high-fill:  87%;  /* --fill custom property value */
+  --capacity-mid-fill:   52%;
+  --capacity-low-fill:   31%;
+
+
+/* ============================================================
+   26. COMPONENT TOKENS — AVATAR
+   ============================================================ */
+
+  --avatar-size:        44px;
+  --avatar-radius:      var(--radius-full);
+  --avatar-font:        var(--font-display);
+  --avatar-font-size:   18px;
+  --avatar-gap:         var(--space-14);
+
+  --author-name-size:   14px;
+  --author-name-weight: var(--weight-bold);
+  --author-role-font:   var(--font-mono);
+  --author-role-size:   12px;
+  --author-role-tracking: var(--tracking-mono);
+  --author-role-color:  var(--color-text-muted);
+
+
+/* ============================================================
+   27. COMPONENT TOKENS — PRICING
+   ============================================================ */
+
+  --plan-name-font:       var(--font-mono);
+  --plan-name-size:       11px;
+  --plan-name-tracking:   3px;
+  --plan-name-color:      var(--color-text-muted);
+  --plan-name-mb:         var(--space-24);
+
+  --plan-price-font:      var(--font-display);
+  --plan-price-size:      var(--text-plan-price);  /* 72px */
+  --plan-price-leading:   var(--leading-tight);
+
+  --plan-desc-size:       13px;
+  --plan-desc-color:      var(--color-text-muted);
+  --plan-desc-leading:    var(--leading-cards);
+
+  --plan-feature-size:    var(--text-body-sm);     /* 14px */
+  --plan-feature-color:   rgba(240, 239, 245, 0.75);
+  --plan-feature-border:  var(--color-border);
+  --plan-feature-padding: var(--space-12) 0;
+  --plan-feature-arrow:   '→';
+  --plan-feature-arrow-color: var(--color-accent);
+  --plan-feature-arrow-font:  var(--font-mono);
+  --plan-feature-arrow-size:  12px;
+
+  /* Featured card overrides */
+  --plan-featured-border:    var(--color-accent);
+  --plan-featured-bg:        rgba(255, 45, 85, 0.05);
+
+  /* Hover lift */
+  --plan-translate-hover:  translateY(-6px);
+
+
+/* ============================================================
+   28. NOISE OVERLAY
+   ============================================================ */
+
+  --noise-z:             var(--z-noise);
+  --noise-opacity:       0.40;
+  /* SVG fractalNoise: baseFrequency 0.9, numOctaves 4, stitchTiles stitch */
+  /* Inner SVG rect opacity: 0.04 */
+
+}
+
+
+/* ============================================================
+   SCROLL REVEAL UTILITY
+   Apply .reveal to any element; JS adds .visible when in viewport.
+   ============================================================ */
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition:
+    opacity  var(--duration-page) var(--ease-default),
+    transform var(--duration-page) var(--ease-default);
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+
+/* ============================================================
+   KEYFRAME DEFINITIONS
+   ============================================================ */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1);   opacity: 1;   }
+  50%       { transform: scale(1.5); opacity: 0.6; }
+}
+
+@keyframes cardPop {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fillBar {
+  from { width: 0; }
+  to   { width: var(--fill); }
+}
+
+@keyframes ticker {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
