@@ -70,27 +70,36 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
-      <h1 className="text-2xl font-bold text-gray-900">新規登録</h1>
-      <p className="mt-1 text-sm text-gray-600">必要情報を入力してアカウントを作成してください。</p>
+    <div className="mx-auto max-w-2xl border border-[rgba(255,255,255,0.08)] bg-[#0d0d12] p-8">
+      <p className="font-(family-name:--font-space-mono) text-xs tracking-[4px] text-[#ff2d55] mb-3">— SIGN UP</p>
+      <h1 className="font-(family-name:--font-bebas-neue) text-3xl tracking-tight text-[#f0eff5]">新規登録</h1>
+      <p className="mt-1 text-sm text-[#6b6a75]">必要情報を入力してアカウントを作成してください。</p>
 
       {error && (
-        <div className="mt-4 bg-red-50 text-red-700 border border-red-200 rounded-lg px-4 py-3 text-sm">{error}</div>
+        <div className="mt-4 border border-red-500/20 bg-red-900/20 px-4 py-3 text-sm text-red-400">{error}</div>
       )}
 
-      <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
+      <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
         <fieldset>
-          <legend className="mb-2 text-sm font-semibold text-gray-700">ユーザー種別</legend>
+          <legend className="mb-2 font-(family-name:--font-space-mono) text-xs tracking-[2px] text-[#6b6a75]">ユーザー種別</legend>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
             {[
               { label: "ライブ運営", value: "organizer" },
               { label: "出演者", value: "performer" },
               { label: "観客", value: "audience" },
             ].map((role) => (
-              <label key={role.value} className="flex items-center gap-2 rounded-lg border border-gray-200 p-2">
+              <label
+                key={role.value}
+                className={`flex items-center gap-2 border p-3 cursor-pointer transition-colors ${
+                  form.userType === role.value
+                    ? "border-[#ff2d55] bg-[rgba(255,45,85,0.08)]"
+                    : "border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.15)]"
+                }`}
+              >
                 <input
                   type="radio"
                   name="userType"
+                  className="accent-[#ff2d55]"
                   checked={form.userType === role.value}
                   onChange={() =>
                     setForm((prev) => ({
@@ -99,7 +108,7 @@ export default function RegisterPage() {
                     }))
                   }
                 />
-                <span className="text-sm text-gray-700">{role.label}</span>
+                <span className="text-sm text-[#f0eff5]">{role.label}</span>
               </label>
             ))}
           </div>
@@ -107,75 +116,76 @@ export default function RegisterPage() {
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-sm font-semibold text-gray-700">姓</label>
+            <label className="mb-1.5 block font-(family-name:--font-space-mono) text-xs tracking-[2px] text-[#6b6a75]">姓</label>
             <input
               type="text"
               required
               placeholder="山田"
               value={form.firstName}
               onChange={(e) => setForm((prev) => ({ ...prev, firstName: e.target.value }))}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-[rgba(255,255,255,0.08)] bg-[#060608] px-3 py-2.5 text-sm text-[#f0eff5] placeholder-[#6b6a75] focus:outline-none focus:border-[#ff2d55] focus:ring-1 focus:ring-[#ff2d55]/30 transition-colors"
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-semibold text-gray-700">名</label>
+            <label className="mb-1.5 block font-(family-name:--font-space-mono) text-xs tracking-[2px] text-[#6b6a75]">名</label>
             <input
               type="text"
               required
               placeholder="太郎"
               value={form.lastName}
               onChange={(e) => setForm((prev) => ({ ...prev, lastName: e.target.value }))}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-[rgba(255,255,255,0.08)] bg-[#060608] px-3 py-2.5 text-sm text-[#f0eff5] placeholder-[#6b6a75] focus:outline-none focus:border-[#ff2d55] focus:ring-1 focus:ring-[#ff2d55]/30 transition-colors"
             />
           </div>
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-semibold text-gray-700">表示用ニックネーム</label>
+          <label className="mb-1.5 block font-(family-name:--font-space-mono) text-xs tracking-[2px] text-[#6b6a75]">表示用ニックネーム</label>
           <input
             type="text"
             required
             value={form.displayName}
             onChange={(e) => setForm((prev) => ({ ...prev, displayName: e.target.value }))}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border border-[rgba(255,255,255,0.08)] bg-[#060608] px-3 py-2.5 text-sm text-[#f0eff5] placeholder-[#6b6a75] focus:outline-none focus:border-[#ff2d55] focus:ring-1 focus:ring-[#ff2d55]/30 transition-colors"
           />
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-semibold text-gray-700">メールアドレス</label>
+          <label className="mb-1.5 block font-(family-name:--font-space-mono) text-xs tracking-[2px] text-[#6b6a75]">メールアドレス</label>
           <input
             type="email"
             required
             value={form.email}
             onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border border-[rgba(255,255,255,0.08)] bg-[#060608] px-3 py-2.5 text-sm text-[#f0eff5] placeholder-[#6b6a75] focus:outline-none focus:border-[#ff2d55] focus:ring-1 focus:ring-[#ff2d55]/30 transition-colors"
           />
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-sm font-semibold text-gray-700">パスワード</label>
+            <label className="mb-1.5 block font-(family-name:--font-space-mono) text-xs tracking-[2px] text-[#6b6a75]">パスワード</label>
             <PasswordInput
               required
               value={form.password}
               onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
             />
-            {passwordError && <p className="mt-1 text-xs text-red-600">{passwordError}</p>}
+            {passwordError && <p className="mt-1 text-xs text-red-400">{passwordError}</p>}
           </div>
           <div>
-            <label className="mb-1 block text-sm font-semibold text-gray-700">パスワード（確認）</label>
+            <label className="mb-1.5 block font-(family-name:--font-space-mono) text-xs tracking-[2px] text-[#6b6a75]">パスワード（確認）</label>
             <PasswordInput
               required
               value={form.confirmPassword}
               onChange={(e) => setForm((prev) => ({ ...prev, confirmPassword: e.target.value }))}
             />
-            {confirmError && <p className="mt-1 text-xs text-red-600">{confirmError}</p>}
+            {confirmError && <p className="mt-1 text-xs text-red-400">{confirmError}</p>}
           </div>
         </div>
 
-        <label className="flex items-center gap-2 text-sm text-gray-700">
+        <label className="flex items-center gap-2 text-sm text-[#6b6a75] cursor-pointer">
           <input
             type="checkbox"
+            className="accent-[#ff2d55]"
             checked={form.agreedToTerms}
             onChange={(e) => setForm((prev) => ({ ...prev, agreedToTerms: e.target.checked }))}
           />
@@ -185,7 +195,7 @@ export default function RegisterPage() {
         <button
           type="submit"
           disabled={isDisabled}
-          className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-70 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+          className="w-full bg-[#ff2d55] hover:bg-[#ff5470] disabled:opacity-50 font-(family-name:--font-space-mono) text-xs tracking-[2px] text-white py-3 px-4 transition-all hover:shadow-[0_16px_40px_rgba(255,45,85,0.40)] hover:-translate-y-0.5"
         >
           {isSubmitting ? "登録中..." : "登録する"}
         </button>

@@ -12,12 +12,12 @@ export function PasswordInput({ className = "", ...props }: PasswordInputProps) 
       <input
         {...props}
         type={isVisible ? "text" : "password"}
-        className={`w-full border border-gray-300 rounded-lg px-3 py-2 pr-11 focus:outline-none focus:ring-2 focus:ring-blue-500 ${className}`.trim()}
+        className={`w-full border border-[rgba(255,255,255,0.08)] bg-[#060608] px-3 py-2.5 pr-11 text-sm text-[#f0eff5] placeholder-[#6b6a75] focus:outline-none focus:border-[#ff2d55] focus:ring-1 focus:ring-[#ff2d55]/30 transition-colors ${className}`.trim()}
       />
       <button
         type="button"
         onClick={() => setIsVisible((prev) => !prev)}
-        className="absolute inset-y-0 right-0 inline-flex items-center px-3 text-gray-500 hover:text-gray-700"
+        className="absolute inset-y-0 right-0 inline-flex items-center px-3 text-[#6b6a75] hover:text-[#f0eff5] transition-colors"
         aria-label={isVisible ? "パスワードを隠す" : "パスワードを表示"}
       >
         {isVisible ? (

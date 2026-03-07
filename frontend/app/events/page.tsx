@@ -47,45 +47,46 @@ export default function EventsPage() {
   }, [eventsFromAPI, searchWord]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">イベント一覧</h1>
-        <p className="mt-1 text-sm text-gray-600">開催予定のライブイベントをチェック</p>
+        <p className="font-(family-name:--font-space-mono) text-xs tracking-[4px] text-[#ff2d55] mb-2">— EVENTS</p>
+        <h1 className="font-(family-name:--font-bebas-neue) text-4xl tracking-tight text-[#f0eff5]">イベント一覧</h1>
+        <p className="mt-1 text-sm text-[#6b6a75]">開催予定のライブイベントをチェック</p>
       </div>
 
-      <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
+      <div className="border border-[rgba(255,255,255,0.08)] bg-[#0d0d12] p-4">
         <div className="flex flex-col gap-2 sm:flex-row">
           <input
             type="text"
             value={searchWord}
             onChange={(e) => setSearchWord(e.target.value)}
             placeholder="イベント名・会場名・説明で検索"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border border-[rgba(255,255,255,0.08)] bg-[#060608] px-3 py-2 text-sm text-[#f0eff5] placeholder-[#6b6a75] focus:outline-none focus:border-[#ff2d55] focus:ring-1 focus:ring-[#ff2d55]/30 transition-colors"
           />
           <button
             type="button"
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+            className="font-(family-name:--font-space-mono) text-xs tracking-[2px] bg-[#ff2d55] hover:bg-[#ff5470] text-white px-6 py-2 transition-colors whitespace-nowrap"
           >
             検索
           </button>
         </div>
       </div>
 
-      <p className="text-sm font-medium text-gray-700">{events.length}件のイベントが見つかりました</p>
+      <p className="font-(family-name:--font-space-mono) text-xs tracking-[2px] text-[#6b6a75]">{events.length}件のイベントが見つかりました</p>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-px md:grid-cols-2">
         {events.map((event) => (
           <Link
             key={event.id}
             href={`/events/${event.id}`}
-            className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow"
+            className="group block bg-[#0d0d12] border border-[rgba(255,255,255,0.08)] p-5 transition-all duration-300 hover:border-[rgba(255,255,255,0.15)] hover:-translate-y-0.5"
           >
-            <h2 className="text-lg font-bold text-gray-900">{event.title}</h2>
-            <div className="mt-2 inline-flex rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-800">
+            <h2 className="text-base font-bold text-[#f0eff5] group-hover:text-[#ff2d55] transition-colors">{event.title}</h2>
+            <div className="mt-2 inline-flex bg-[rgba(255,45,85,0.15)] px-2.5 py-1 font-(family-name:--font-space-mono) text-[10px] tracking-[2px] text-[#ff2d55]">
               予約受付中
             </div>
-            <p className="mt-2 line-clamp-2 text-sm text-gray-600">{event.description}</p>
-            <div className="mt-3 space-y-1 text-sm text-gray-700">
+            <p className="mt-2 line-clamp-2 text-sm leading-6 text-[rgba(240,239,245,0.55)]">{event.description}</p>
+            <div className="mt-4 space-y-1 text-xs text-[#6b6a75]">
               <p>📅 {event.eventDate}</p>
               <p>📍 {event.venueName}</p>
               <p>🎫 {event.ticketPrice ? `${event.ticketPrice.toLocaleString()}円` : "未定"}</p>

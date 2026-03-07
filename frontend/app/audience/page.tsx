@@ -67,58 +67,59 @@ export default function AudiencePage() {
   };
 
   if (isLoading) {
-    return <p className="text-sm text-gray-600">読み込み中...</p>;
+    return <p className="text-sm text-[#6b6a75]">読み込み中...</p>;
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">マイページ</h1>
-        <p className="mt-1 text-sm text-gray-600">ようこそ、{user?.display_name ?? "ゲスト"}さん</p>
+        <p className="font-(family-name:--font-space-mono) text-xs tracking-[4px] text-[#ff2d55] mb-2">— MY PAGE</p>
+        <h1 className="font-(family-name:--font-bebas-neue) text-4xl tracking-tight text-[#f0eff5]">マイページ</h1>
+        <p className="mt-1 text-sm text-[#6b6a75]">ようこそ、{user?.display_name ?? "ゲスト"}さん</p>
       </div>
 
-      {error && <div className="bg-red-50 text-red-700 border border-red-200 rounded-lg px-4 py-3 text-sm">{error}</div>}
+      {error && <div className="border border-red-500/20 bg-red-900/20 px-4 py-3 text-sm text-red-400">{error}</div>}
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <article className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          <p className="text-sm text-gray-500">予約中</p>
-          <p className="text-2xl font-bold text-gray-900">{activeReservations.length}</p>
+      <div className="grid grid-cols-1 gap-px md:grid-cols-3">
+        <article className="bg-[#0d0d12] border border-[rgba(255,255,255,0.08)] p-5">
+          <p className="font-(family-name:--font-space-mono) text-xs tracking-[2px] text-[#6b6a75]">予約中</p>
+          <p className="mt-1 font-(family-name:--font-bebas-neue) text-4xl text-[#ff2d55]">{activeReservations.length}</p>
         </article>
-        <article className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          <p className="text-sm text-gray-500">キャンセル済み</p>
-          <p className="text-2xl font-bold text-gray-900">{cancelledReservations.length}</p>
+        <article className="bg-[#0d0d12] border border-[rgba(255,255,255,0.08)] p-5">
+          <p className="font-(family-name:--font-space-mono) text-xs tracking-[2px] text-[#6b6a75]">キャンセル済み</p>
+          <p className="mt-1 font-(family-name:--font-bebas-neue) text-4xl text-[#f0eff5]">{cancelledReservations.length}</p>
         </article>
-        <article className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-          <p className="text-sm text-gray-500">参加済み</p>
-          <p className="text-2xl font-bold text-gray-900">0</p>
+        <article className="bg-[#0d0d12] border border-[rgba(255,255,255,0.08)] p-5">
+          <p className="font-(family-name:--font-space-mono) text-xs tracking-[2px] text-[#6b6a75]">参加済み</p>
+          <p className="mt-1 font-(family-name:--font-bebas-neue) text-4xl text-[#f0eff5]">0</p>
         </article>
       </div>
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900">予約中のイベント</h2>
-          <Link href="/events" className="text-sm font-semibold text-blue-600 hover:text-blue-700">
+          <h2 className="font-(family-name:--font-bebas-neue) text-2xl tracking-tight text-[#f0eff5]">予約中のイベント</h2>
+          <Link href="/events" className="font-(family-name:--font-space-mono) text-xs tracking-[2px] text-[#6b6a75] hover:text-[#f0eff5] transition-colors">
             イベント一覧を見る
           </Link>
         </div>
 
         {activeReservations.length === 0 ? (
-          <p className="text-sm text-gray-600">予約中のイベントはありません。</p>
+          <p className="text-sm text-[#6b6a75]">予約中のイベントはありません。</p>
         ) : (
           <div className="space-y-3">
             {activeReservations.map((reservation) => (
-              <article key={reservation.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-                <div className="mb-2 inline-flex rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-800">
+              <article key={reservation.id} className="bg-[#0d0d12] border border-[rgba(255,255,255,0.08)] p-5">
+                <div className="mb-2 inline-flex bg-[rgba(255,45,85,0.15)] px-2.5 py-1 font-(family-name:--font-space-mono) text-[10px] tracking-[2px] text-[#ff2d55]">
                   予約済み
                 </div>
-                <p className="text-sm text-gray-600">予約番号: {reservation.reservationNumber}</p>
-                <p className="text-sm text-gray-600">予約日時: {new Date(reservation.reservedAt).toLocaleString("ja-JP")}</p>
-                <div className="mt-3">
+                <p className="text-sm text-[#6b6a75]">予約番号: {reservation.reservationNumber}</p>
+                <p className="text-sm text-[#6b6a75]">予約日時: {new Date(reservation.reservedAt).toLocaleString("ja-JP")}</p>
+                <div className="mt-4">
                   <button
                     type="button"
                     onClick={() => handleCancel(reservation.id)}
                     disabled={isCancellingId === reservation.id}
-                    className="bg-red-600 hover:bg-red-700 disabled:opacity-70 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+                    className="border border-red-500/30 hover:bg-red-900/20 disabled:opacity-50 text-red-400 font-(family-name:--font-space-mono) text-xs tracking-[2px] py-2 px-4 transition-colors"
                   >
                     {isCancellingId === reservation.id ? "キャンセル中..." : "キャンセル"}
                   </button>
@@ -130,18 +131,18 @@ export default function AudiencePage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-xl font-bold text-gray-900">キャンセル済み</h2>
+        <h2 className="font-(family-name:--font-bebas-neue) text-2xl tracking-tight text-[#f0eff5]">キャンセル済み</h2>
         {cancelledReservations.length === 0 ? (
-          <p className="text-sm text-gray-600">キャンセル済みの予約はありません。</p>
+          <p className="text-sm text-[#6b6a75]">キャンセル済みの予約はありません。</p>
         ) : (
           <div className="space-y-3">
             {cancelledReservations.map((reservation) => (
-              <article key={reservation.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-                <div className="mb-2 inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600">
+              <article key={reservation.id} className="bg-[#0d0d12] border border-[rgba(255,255,255,0.08)] p-5">
+                <div className="mb-2 inline-flex bg-white/5 px-2.5 py-1 font-(family-name:--font-space-mono) text-[10px] tracking-[2px] text-[#6b6a75]">
                   キャンセル済み
                 </div>
-                <p className="text-sm text-gray-600">予約番号: {reservation.reservationNumber}</p>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-[#6b6a75]">予約番号: {reservation.reservationNumber}</p>
+                <p className="text-sm text-[#6b6a75]">
                   キャンセル日時: {reservation.cancelledAt ? new Date(reservation.cancelledAt).toLocaleString("ja-JP") : "-"}
                 </p>
               </article>
