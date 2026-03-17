@@ -2079,8 +2079,8 @@ func scanSetlist(scanner setlistScanner) (model.Setlist, bool) {
 
 func scanPerformance(scanner performanceScanner) (model.Performance, bool) {
 	var performance model.Performance
-	var startTime sql.NullTime
-	var endTime sql.NullTime
+	var startTime any
+	var endTime any
 
 	err := scanner.Scan(
 		&performance.ID,
@@ -2097,12 +2097,18 @@ func scanPerformance(scanner performanceScanner) (model.Performance, bool) {
 		return model.Performance{}, false
 	}
 
-	if startTime.Valid {
-		v := startTime.Time.Format("15:04")
+	if startTime != nil {
+		v, err := formatClockValue(startTime)
+		if err != nil {
+			return model.Performance{}, false
+		}
 		performance.StartTime = &v
 	}
-	if endTime.Valid {
-		v := endTime.Time.Format("15:04")
+	if endTime != nil {
+		v, err := formatClockValue(endTime)
+		if err != nil {
+			return model.Performance{}, false
+		}
 		performance.EndTime = &v
 	}
 
